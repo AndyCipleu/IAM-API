@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <!-- ============================================== -->
+    <!-- PROPIEDADES DE CONFIGURACIÓN                   -->
+    <!-- ============================================== -->
+
+    <!-- Directorio donde se guardarán los logs -->
+    <property name="LOG_DIR" value="logs"/>
+
+    <!-- Patrón de formato para logs en consola -->
+    <!-- %d: fecha/hora -->
+    <!-- %thread: nombre del thread -->
+    <!-- %-5level: nivel del log (INFO, WARN, ERROR) alineado a 5 caracteres -->
+    <!-- %logger{36}: nombre del logger (máximo 36 caracteres) -->
+    <!-- %msg: mensaje del log -->
+    <!-- %n: nueva línea -->
+    <property name="CONSOLE_PATTERN"
+              value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"/>
+
+    <!-- Patrón para logs en archivos (sin colores ANSI) -->
+    <property name="FILE_PATTERN"
+              value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"/>
+
+    <!-- Patrón minimalista para auditoría (solo mensaje y fecha) -->
+    <property name="AUDIT_PATTERN"
+              value="%d{yyyy-MM-dd HH:mm:ss} | %msg%n"/>
+
+
+    <!-- ============================================== -->
+    <!-- APPENDERS (DESTINOS DE LOS LOGS)               -->
+    <!-- ============================================== -->
+
+    <!-- ========== CONSOLA ========== -->
+    <!-- Los logs van a stdout (consola/terminal) -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${CONSOLE_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+
+    <!-- ========== ARCHIVO: application.log ========== -->
+    <!-- Logs generales de la aplicación -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+
+        <!-- Archivo actual -->
+        <file>${LOG_DIR}/application.log</file>
+
+        <!-- Estrategia de rotación -->
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- Patrón de nombre para archivos archivados -->
+            <!-- Ejemplo: application-2026-02-02.log -->
+            <fileNamePattern>${LOG_DIR}/archived/application-%d{yyyy-MM-dd}.log</fileNamePattern>
+
+            <!-- Mantener logs de los últimos 30 días -->
+            <maxHistory>30</maxHistory>
+
+            <!-- Tamaño máximo total de logs archivados (10 GB) -->
+            <totalSizeCap>10GB</totalSizeCap>
+        </rollingPolicy>
+
+        <encoder>
+            <pattern>${FILE_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+
+    <!-- ========== ARCHIVO: audit.log ========== -->
+    <!-- Logs de auditoría (separados) -->
+    <appender name="AUDIT_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+
+        <file>${LOG_DIR}/audit.log</file>
+
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- Archivos por día -->
+            <fileNamePattern>${LOG_DIR}/archived/audit-%d{yyyy-MM-dd}.log</fileNamePattern>
+
+            <!-- Mantener logs de auditoría durante 90 días -->
+            <!-- Más tiempo que logs normales (cumplimiento) -->
+            <maxHistory>90</maxHistory>
+
+            <totalSizeCap>5GB</totalSizeCap>
+        </rollingPolicy>
+
+        <encoder>
+            <!-- Formato minimalista: solo fecha y mensaje -->
+            <pattern>${AUDIT_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+
+    <!-- ========== ARCHIVO: error.log ========== -->
+    <!-- Solo errores (ERROR y FATAL) -->
+    <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+
+        <file>${LOG_DIR}/error.log</file>
+
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_DIR}/archived/error-%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>60</maxHistory>
+        </rollingPolicy>
+
+        <!-- Filtro: solo ERROR o superior -->
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>ERROR</level>
+        </filter>
+
+        <encoder>
+            <pattern>${FILE_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+
+    <!-- ============================================== -->
+    <!-- LOGGERS (CONFIGURACIÓN POR PAQUETE/CLASE)      -->
+    <!-- ============================================== -->
+
+    <!-- ========== LOGGER ESPECÍFICO: AUDIT ========== -->
+    <!-- Logger usado en LoggerAuditAdapter -->
+    <logger name="AUDIT" level="INFO" additivity="false">
+        <!-- Solo va a AUDIT_FILE, no a otros appenders -->
+        <appender-ref ref="AUDIT_FILE"/>
+
+        <!-- También mostrar en consola durante desarrollo -->
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+
+
+    <!-- ========== LOGGER: Tu aplicación IAM ========== -->
+    <!-- Logs de tu código (com.andy.iamapi.*) -->
+    <logger name="com.andy.iamapi" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+        <appender-ref ref="ERROR_FILE"/>
+    </logger>
+
+
+    <!-- ========== LOGGER: Spring Framework ========== -->
+    <!-- Reducir verbosidad de Spring -->
+    <logger name="org.springframework" level="INFO"/>
+
+
+    <!-- ========== LOGGER: Hibernate SQL ========== -->
+    <!-- Ver queries SQL en desarrollo -->
+    <logger name="org.hibernate.SQL" level="DEBUG"/>
+
+    <!-- Ver parámetros de las queries (los ?) -->
+    <logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="TRACE"/>
+
+    <!-- Ver estadísticas de Hibernate -->
+    <logger name="org.hibernate.stat" level="DEBUG"/>
+
+
+    <!-- ========== LOGGER: Flyway ========== -->
+    <logger name="org.flywaydb" level="INFO"/>
+
+
+    <!-- ========== LOGGER: HikariCP (pool de conexiones) ========== -->
+    <logger name="com.zaxxer.hikari" level="INFO"/>
+
+
+    <!-- ========== ROOT LOGGER (por defecto) ========== -->
+    <!-- Todos los logs que no matchean con loggers específicos -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+        <appender-ref ref="ERROR_FILE"/>
+    </root>
+
+</configuration>

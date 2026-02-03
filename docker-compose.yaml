@@ -1,0 +1,95 @@
+services:
+  # ===== SERVICIO 1: PostgreSQL =====
+  postgres:
+    # Imagen oficial de PostgreSQL versión 16
+    image: postgres:16-alpine
+
+    # Nombre del contenedor (para referenciarlo fácilmente)
+    container_name: iam-postgres
+
+    # Variables de entorno para configurar PostgreSQL
+    environment:
+      # Usuario administrador de PostgreSQL
+      POSTGRES_USER: iam_user
+
+      # Contraseña del admin (CAMBIAR EN PRODUCCIÓN)
+      POSTGRES_PASSWORD: iam_password
+
+      # Nombre de la base de datos que se creará automáticamente
+      POSTGRES_DB: iam_db
+
+      # Timezone (para que las fechas sean correctas)
+      TZ: Europe/Madrid
+
+    # Mapeo de puertos: HOST:CONTAINER
+    # 5432 es el puerto por defecto de PostgreSQL
+    ports:
+      - "5432:5432"
+
+    # Volumen para persistir datos (sobrevive a reinicios del contenedor)
+    volumes:
+      # Los datos de PostgreSQL se guardan en un volumen Docker
+      - postgres-data:/var/lib/postgresql/data
+
+    # Configuración de red (para que los servicios se comuniquen)
+    networks:
+      - iam-network
+
+    # Healthcheck: verifica que PostgreSQL esté listo
+    # ¿Por qué? Para que otros servicios esperen a que PG esté operativo
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U iam_user -d iam_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===== SERVICIO 2: pgAdmin (Opcional - GUI para PostgreSQL) =====
+  pgadmin:
+    # Imagen de pgAdmin4 (interfaz web para administrar PostgreSQL)
+    image: dpage/pgadmin4:latest
+
+    container_name: iam-pgadmin
+
+    environment:
+      # Email de login para pgAdmin
+      PGADMIN_DEFAULT_EMAIL: admin@iam.com
+
+      # Contraseña de login para pgAdmin
+      PGADMIN_DEFAULT_PASSWORD: admin
+
+      # Configuración: no pedir guardar password al conectar
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+
+    # Puerto de pgAdmin (accedes desde http://localhost:5050)
+    ports:
+      - "5050:80"
+
+    # pgAdmin también guarda configuraciones en volumen
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+
+    networks:
+      - iam-network
+
+    # Espera a que PostgreSQL esté ready antes de iniciar
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+# ===== DEFINICIÓN DE VOLÚMENES =====
+# Los volúmenes persisten datos fuera de los contenedores
+volumes:
+  postgres-data:
+  # Volumen para datos de PostgreSQL
+  # Docker lo gestiona automáticamente en:
+  # Linux: /var/lib/docker/volumes/
+  # Windows/Mac: En la VM de Docker Desktop
+
+  pgadmin-data:
+  # Volumen para configuraciones de pgAdmin
+
+# ===== DEFINICIÓN DE REDES =====
+networks:
+  iam-network:
+    # Red bridge personalizada para que los servicios se comuniquen
+    driver: bridge
