@@ -12,7 +12,7 @@ public interface AuthenticateUserUseCase {
      * @throws InvalidCredentialsException si email/password incorrectos
      * @throws AccountLockedException si la cuenta está bloqueada
      */
-    AuthenticationResponse execute(AuthenticateUserCommand command);
+    AuthenticationResult execute(AuthenticateUserCommand command);
 
     record AuthenticateUserCommand(
             String email,
@@ -28,7 +28,7 @@ public interface AuthenticateUserUseCase {
             }
         }
     }
-    record AuthenticationResponse(
+    record AuthenticationResult(
             String accessToken,
             String refreshToken,
             String email,

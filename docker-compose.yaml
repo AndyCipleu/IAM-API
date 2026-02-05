@@ -76,6 +76,18 @@ services:
       postgres:
         condition: service_healthy
 
+  # Redis (NUEVO)
+  redis:
+    image: redis:7-alpine
+    container_name: iam-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes  # Persistencia activada
+    networks:
+      - iam-network
+
 # ===== DEFINICIÓN DE VOLÚMENES =====
 # Los volúmenes persisten datos fuera de los contenedores
 volumes:
@@ -88,6 +100,7 @@ volumes:
   pgadmin-data:
   # Volumen para configuraciones de pgAdmin
 
+  redis_data:
 # ===== DEFINICIÓN DE REDES =====
 networks:
   iam-network:

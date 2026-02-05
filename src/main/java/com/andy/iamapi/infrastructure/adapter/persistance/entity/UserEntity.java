@@ -35,7 +35,6 @@ import java.util.UUID;
 @EqualsAndHashCode(of = "id")
 public class UserEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", updatable = false, nullable = false)
     private UUID id;
 

@@ -1,6 +1,6 @@
 package com.andy.iamapi.infrastructure.adapter.rest.dto.request;
 
-
+import com.andy.iamapi.domain.port.input.RegisterUserUseCase.RegisterUserCommand;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -39,4 +39,17 @@ public record RegisterUserRequest (
     // - Inmutables
     // - Constructor, equals, hashCode, toString automáticos
     // - Sintaxis concisa
+    /**
+     * Convierte este Request DTO a un Command del dominio.
+     *
+     * Facilita la conversión en el controller.
+     */
+    public RegisterUserCommand toCommand() {
+        return new RegisterUserCommand(
+                this.email(),
+                this.password(),
+                this.firstName(),
+                this.lastName()
+        );
+    }
 }

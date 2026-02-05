@@ -14,7 +14,7 @@ public interface TokenService {
      * @param user Usuario autenticado
      * @return JWT token válido por 1 hora (configurable)
      */
-    String generateAccesToken(User user);
+    String generateAccessToken(User user);
 
     /**
      * Genera un refresh token para renovar sesión

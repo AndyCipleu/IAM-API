@@ -33,6 +33,20 @@ spring:
     validate-on-migrate: true
     default-schema: public
 
+  # Redis (NUEVO)
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      # password:  # Si configuraste password en Redis, descoméntalo
+      timeout: 2000ms  # Timeout de conexión
+      lettuce:
+        pool:
+          max-active: 8    # Máximo de conexiones activas
+          max-idle: 8      # Máximo de conexiones idle
+          min-idle: 0      # Mínimo de conexiones idle
+          max-wait: -1ms   # Tiempo máximo de espera (-1 = infinito)
+
 # JWT Configuration
 jwt:
   secret: your-256-bit-secret-key-change-in-production

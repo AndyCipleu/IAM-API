@@ -10,6 +10,7 @@ import com.andy.iamapi.domain.port.output.AuditLogger;
 import com.andy.iamapi.domain.port.output.PasswordEncoder;
 import com.andy.iamapi.domain.port.output.RoleRepository;
 import com.andy.iamapi.domain.port.output.UserRepository;
+import org.springframework.stereotype.Service;
 
 /**
  * Implementación del caso de uso de registro de usuarios.
@@ -29,6 +30,7 @@ import com.andy.iamapi.domain.port.output.UserRepository;
  * @see RegisterUserUseCase
  * @see User
  */
+@Service
 public class RegisterUserService implements RegisterUserUseCase {
     //Constantes para configuración
     private static final String DEFAULT_ROLE = "ROLE_USER";

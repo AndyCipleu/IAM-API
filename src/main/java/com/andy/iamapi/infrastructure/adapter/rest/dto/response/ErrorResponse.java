@@ -27,7 +27,7 @@ public record ErrorResponse(
         String error,
         String message,
         String path,
-        List<String> details //Para múltiples errores de validación
+        List<String> details //Para múltiples errores de validación(contiene los distintos campos que incumplen la validación)
 ) {
     //Si no hay details
     public ErrorResponse(int status, String error, String message, String path) {
