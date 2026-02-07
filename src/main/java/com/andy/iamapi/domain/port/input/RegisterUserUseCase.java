@@ -1,5 +1,7 @@
 package com.andy.iamapi.domain.port.input;
 
+import com.andy.iamapi.domain.exception.InvalidPasswordException;
+import com.andy.iamapi.domain.exception.UserAlreadyExistsException;
 import com.andy.iamapi.domain.model.User;
 
 /**

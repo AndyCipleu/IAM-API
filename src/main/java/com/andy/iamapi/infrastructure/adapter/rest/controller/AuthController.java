@@ -141,7 +141,6 @@ public class AuthController {
             result.lastName(),
             null,
             null
-
     );
 
     AuthenticationResponse response = new AuthenticationResponse(

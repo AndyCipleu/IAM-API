@@ -58,7 +58,7 @@ public class JwtTokenService implements TokenService {
      * Viene de application.yml: jwt.expiration
      * Por defecto: 3600000 ms = 1 hora
      */
-    private final long accesTokenExpiration;
+    private final long accessTokenExpiration;
 
     /**
      * Tiempo de expiración del refresh token en milisegundos.
@@ -90,7 +90,7 @@ public class JwtTokenService implements TokenService {
     ) {
         // Convertir el string secret a SecretKey para HMAC-SHA256
         this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
-        this.accesTokenExpiration = accessTokenExpiration;
+        this.accessTokenExpiration = accessTokenExpiration;
         this.refreshTokenExpiration = refreshTokenExpiration;
         this.tokenBlacklist = tokenBlacklist;
 
@@ -118,7 +118,7 @@ public class JwtTokenService implements TokenService {
     @Override
     public String generateAccessToken(User user) {
         Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + accesTokenExpiration);
+        Date expiryDate = new Date(now.getTime() + accessTokenExpiration);
 
         //Extraer nombres de roles
         String roles = user.getRoles()
