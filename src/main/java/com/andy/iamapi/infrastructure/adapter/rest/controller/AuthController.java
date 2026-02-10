@@ -4,11 +4,19 @@ import com.andy.iamapi.domain.model.User;
 import com.andy.iamapi.domain.port.input.AuthenticateUserUseCase;
 import com.andy.iamapi.domain.port.input.AuthenticateUserUseCase.AuthenticationResult;
 import com.andy.iamapi.domain.port.input.AuthenticateUserUseCase.AuthenticateUserCommand;
+import com.andy.iamapi.domain.port.input.LogoutUseCase.LogoutCommand;
+import com.andy.iamapi.domain.port.input.LogoutUseCase;
+import com.andy.iamapi.domain.port.input.RefreshTokenUseCase.RefreshTokenResult;
+import com.andy.iamapi.domain.port.input.RefreshTokenUseCase;
+import com.andy.iamapi.domain.port.input.RefreshTokenUseCase.RefreshTokenCommand;
 import com.andy.iamapi.domain.port.input.RegisterUserUseCase;
 import com.andy.iamapi.infrastructure.adapter.rest.dto.request.LoginRequest;
+import com.andy.iamapi.infrastructure.adapter.rest.dto.request.LogoutRequest;
+import com.andy.iamapi.infrastructure.adapter.rest.dto.request.RefreshTokenRequest;
 import com.andy.iamapi.infrastructure.adapter.rest.dto.request.RegisterUserRequest;
 import com.andy.iamapi.domain.port.input.RegisterUserUseCase.RegisterUserCommand;
 import com.andy.iamapi.infrastructure.adapter.rest.dto.response.AuthenticationResponse;
+import com.andy.iamapi.infrastructure.adapter.rest.dto.response.RefreshTokenResponse;
 import com.andy.iamapi.infrastructure.adapter.rest.dto.response.UserResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -16,6 +24,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -51,9 +61,20 @@ public class AuthController {
 
     private final AuthenticateUserUseCase authenticateUserUseCase;
 
-    public AuthController(RegisterUserUseCase registerUserUseCase, AuthenticateUserUseCase authenticateUserUseCase) {
+    private final RefreshTokenUseCase refreshTokenUseCase;
+
+    private final LogoutUseCase logoutUseCase;
+
+    public AuthController(
+            RegisterUserUseCase registerUserUseCase,
+            AuthenticateUserUseCase authenticateUserUseCase,
+            RefreshTokenUseCase refreshTokenUseCase,
+            LogoutUseCase logoutUseCase
+    ) {
         this.registerUserUseCase = registerUserUseCase;
         this.authenticateUserUseCase = authenticateUserUseCase;
+        this.refreshTokenUseCase = refreshTokenUseCase;
+        this.logoutUseCase = logoutUseCase;
     }
 
 /**
@@ -152,6 +173,95 @@ public class AuthController {
 
     return ResponseEntity.ok(response);
 }
+
+/**
+ * Refresca el access token usando un refresh token válido.
+ *
+ * Endpoint: POST /api/auth/refresh
+ *
+ * Request body:
+ * {
+ *   "refreshToken": "eyJhbGciOiJIUzI1NiIs..."
+ * }
+ *
+ * Response exitosa (200 OK):
+ * {
+ *   "accessToken": "eyJhbGciOiJIUzI1NiIs...",
+ *   "tokenType": "Bearer",
+ *   "expiresIn": 3600
+ * }
+ *
+ * Errores posibles:
+ * - 400 Bad Request: Validación falló
+ * - 401 Unauthorized: Refresh token inválido/expirado
+ */
+@PostMapping("/refresh")
+public ResponseEntity<RefreshTokenResponse> refresh (
+        @Valid @RequestBody RefreshTokenRequest request
+        ) {
+
+    log.info("Attempting to refresh access token");
+
+    RefreshTokenCommand command = new RefreshTokenCommand(request.refreshToken());
+
+    RefreshTokenResult result = refreshTokenUseCase.execute(command);
+
+    RefreshTokenResponse response = new RefreshTokenResponse(
+            result.accessToken(),
+            result.expiresIn()
+    );
+
+    log.info("Access token refreshed successfully");
+
+    return ResponseEntity
+            .ok(response);
+
+}
+
+    /**
+     * Cierra la sesión del usuario revocando sus tokens.
+     *
+     * Endpoint: POST /api/auth/logout
+     *
+     * Request body:
+     * {
+     *   "accessToken": "eyJhbGciOiJIUzI1NiIs...",
+     *   "refreshToken": "eyJhbGciOiJIUzI1NiIs..."
+     * }
+     *
+     * Response exitosa (204 No Content):
+     * (sin body)
+     *
+     * Después del logout:
+     * - Access token agregado a blacklist (no se puede usar más)
+     * - Refresh token agregado a blacklist (no se puede usar más)
+     * - Usuario debe hacer login de nuevo
+     *
+     * Este endpoint REQUIERE autenticación (token válido en header).
+     */
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(
+            @Valid @RequestBody LogoutRequest request
+            ) {
+
+        //Obtener el usuario autenticado del SecurityContext
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User user = (User) authentication.getPrincipal();
+
+        log.info("Logging out for user: {}", user.getId());
+
+        LogoutCommand command = new LogoutCommand(
+                user.getId(),
+                request.accessToken(),
+                request.refreshToken()
+        );
+
+        logoutUseCase.execute(command);
+
+        log.info("User logged out successfully: {}", user.getId());
+
+        return ResponseEntity.noContent().build();
+    }
 
 
 
