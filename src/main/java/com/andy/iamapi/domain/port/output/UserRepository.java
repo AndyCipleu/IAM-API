@@ -3,6 +3,7 @@ package com.andy.iamapi.domain.port.output;
 
 import com.andy.iamapi.domain.model.User;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -37,11 +38,24 @@ public interface UserRepository {
     Optional<User> findById(UUID id);
 
     /**
+     * Busca a todos los usuarios
+     * @return Listm lista con todos los usuarios
+     */
+    List<User> findAll();
+
+    /**
      * Verifica si existe un usuario con el email dado
      * @param email Email a verificar
      * @return true si existe, false si no
      */
     boolean existsByEmail(String email);
+
+    /**
+     * Verifica si existe un usuario con el id dado
+     * @param userId Id a verificar
+     * @return true si existe, false si no
+     */
+    boolean existsById(UUID userId);
 
     /**
      * Elimina un usuario (soft delete recomendado)

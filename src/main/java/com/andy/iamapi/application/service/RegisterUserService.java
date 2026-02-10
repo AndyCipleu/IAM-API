@@ -10,6 +10,7 @@ import com.andy.iamapi.domain.port.output.AuditLogger;
 import com.andy.iamapi.domain.port.output.PasswordEncoder;
 import com.andy.iamapi.domain.port.output.RoleRepository;
 import com.andy.iamapi.domain.port.output.UserRepository;
+import com.andy.iamapi.domain.util.PasswordValidator;
 import org.springframework.stereotype.Service;
 
 /**
@@ -32,10 +33,7 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class RegisterUserService implements RegisterUserUseCase {
-    //Constantes para configuración
     private static final String DEFAULT_ROLE = "ROLE_USER";
-    private static final int MIN_PASSWORD_LENGHT = 8;
-    private static final String PASSWORD_PATTERN = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).+$";
 
     //Dependencies (inyectadas via constructor)
     private final UserRepository userRepository;
@@ -99,7 +97,7 @@ public class RegisterUserService implements RegisterUserUseCase {
         }
 
         //Validar fortaleza password
-        validatePasswordStrength(command.password());
+        PasswordValidator.validate(command.password());
 
         //Hashear la password para seguridad
         String hashedPassword = passwordEncoder.encode(command.password());
@@ -130,25 +128,5 @@ public class RegisterUserService implements RegisterUserUseCase {
         );
 
         return savedUser;
-    }
-
-
-    private void validatePasswordStrength(String password) {
-        // Validación 1: Longitud mínima
-        if (password.length() < MIN_PASSWORD_LENGHT) {
-            throw new InvalidPasswordException(
-                    "Password must be at least " + MIN_PASSWORD_LENGHT + " characters long"
-            );
-        }
-
-        // Validación 2: Complejidad (mayúscula, minúscula, número)
-        // Pattern: ^ inicio, (?=.*[a-z]) lookhead minúscula, (?=.*[A-Z]) mayúscula,
-        //          (?=.*\\d) dígito, .+ cualquier carácter después
-        if (!password.matches(PASSWORD_PATTERN)) {
-            throw new InvalidPasswordException(
-                    "Password must contain at least one uppercase letter, " +
-                            "one lowercase letter, and one digit"
-            );
-        }
     }
 }

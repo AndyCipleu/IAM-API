@@ -3,6 +3,7 @@ package com.andy.iamapi.infrastructure.config;
 import com.andy.iamapi.infrastructure.adapter.security.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -20,6 +21,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
  */
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
@@ -60,7 +62,7 @@ public class SecurityConfig {
                 // Autorización de requests
                 .authorizeHttpRequests(auth -> auth
                         // Endpoints PÚBLICOS (sin token)
-                        .requestMatchers("/api/auth/**").permitAll() //register y login
+                        .requestMatchers("/api/auth/**").permitAll() //register, login, logout y refresh
 
                         // Todos los demás endpoints requieren AUTENTICACIÓN
                         .anyRequest().authenticated())

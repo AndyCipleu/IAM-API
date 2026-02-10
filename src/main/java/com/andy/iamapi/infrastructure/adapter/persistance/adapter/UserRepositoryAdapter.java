@@ -8,8 +8,10 @@ import com.andy.iamapi.infrastructure.adapter.persistance.mapper.UserMapper;
 import com.andy.iamapi.infrastructure.adapter.persistance.repository.UserJpaRepository;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Adapter que implementa el port UserRepository usando JPA.
@@ -99,6 +101,19 @@ public class UserRepositoryAdapter implements UserRepository {
     }
 
     /**
+     * Busca a todos los usuarios
+     *
+     * @return List con todos los users
+     */
+    @Override
+    public List<User> findAll() {
+        return jpaRepository.findAll()
+                .stream()
+                .map(mapper::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    /**
      * Verifica si existe un usuario con el email dado.
      *
      * Más eficiente que findByEmail().isPresent() porque solo
@@ -113,6 +128,23 @@ public class UserRepositoryAdapter implements UserRepository {
     @Override
     public boolean existsByEmail(String email) {
         return jpaRepository.existsByEmail(email);
+    }
+
+    /**
+     * Verifica si existe un usuario con el Id dado.
+     *
+     * Más eficiente que findById().isPresent() porque solo
+     * ejecuta SELECT COUNT en vez de cargar toda la entidad.
+     *
+     * Query ejecutada:
+     * {@code SELECT COUNT(*) FROM users WHERE id = ?}
+     *
+     * @param userId Id a verificar
+     * @return true si existe al menos un usuario con ese id
+     */
+    @Override
+    public boolean existsById(UUID userId) {
+        return jpaRepository.existsById(userId);
     }
 
 
