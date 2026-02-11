@@ -2,6 +2,10 @@ package com.andy.iamapi.infrastructure.adapter.rest.controller;
 
 import com.andy.iamapi.domain.model.User;
 import com.andy.iamapi.domain.port.input.*;
+import com.andy.iamapi.domain.port.input.AssignRoleToUserUseCase;
+import com.andy.iamapi.domain.port.input.RevokeRoleFromUserUseCase;
+import com.andy.iamapi.domain.port.input.RevokeRoleFromUserUseCase.RevokeRoleCommand;
+import com.andy.iamapi.domain.port.input.AssignRoleToUserUseCase.AssignRoleCommand;
 import com.andy.iamapi.infrastructure.adapter.rest.dto.request.ChangePasswordRequest;
 import com.andy.iamapi.infrastructure.adapter.rest.dto.request.UpdateUserRequest;
 import com.andy.iamapi.infrastructure.adapter.rest.dto.response.UserListResponse;
@@ -30,19 +34,26 @@ public class UserController {
     private final ChangePasswordUseCase changePasswordUseCase;
     private final DeleteUserUseCase deleteUserUseCase;
 
+    private final AssignRoleToUserUseCase assignRoleToUserUseCase;
+    private final RevokeRoleFromUserUseCase revokeRoleFromUserUseCase;
+
     public UserController(
             GetCurrentUserUseCase getCurrentUserUseCase,
             GetAllUsersUseCase getAllUsersUseCase,
             GetUserByIdUseCase getUserByIdUseCase,
             UpdateUserUseCase updateUserUseCase,
             ChangePasswordUseCase changePasswordUseCase,
-            DeleteUserUseCase deleteUserUseCase) {
+            DeleteUserUseCase deleteUserUseCase,
+            AssignRoleToUserUseCase assignRoleToUserUseCase,
+            RevokeRoleFromUserUseCase revokeRoleFromUserUseCase) {
         this.getCurrentUserUseCase = getCurrentUserUseCase;
         this.getAllUsersUseCase = getAllUsersUseCase;
         this.getUserByIdUseCase = getUserByIdUseCase;
         this.updateUserUseCase = updateUserUseCase;
         this.changePasswordUseCase = changePasswordUseCase;
         this.deleteUserUseCase = deleteUserUseCase;
+        this.assignRoleToUserUseCase = assignRoleToUserUseCase;
+        this.revokeRoleFromUserUseCase = revokeRoleFromUserUseCase;
     }
 
     /**
@@ -235,6 +246,65 @@ public class UserController {
         deleteUserUseCase.execute(id);
 
         log.info("User deleted successfully: {}", id);
+
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Asigna un rol a un usuario.
+     *
+     * Endpoint: POST /api/users/{userId}/roles/{roleId}
+     *
+     * Requiere: Token JWT válido + rol ROLE_ADMIN
+     *
+     * Response exitosa (204 No Content)
+     *
+     * Errores:
+     * - 404 Not Found: Usuario o rol no existe
+     */
+    @PostMapping("/{userId}/roles/{roleId}")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<Void> assignRoleToUser(
+            @PathVariable UUID userId,
+            @PathVariable UUID roleId
+    ) {
+        log.info("Assigning role {} to user {}", roleId, userId);
+
+        AssignRoleCommand command = new AssignRoleCommand(userId, roleId);
+
+        assignRoleToUserUseCase.execute(command);
+
+        log.info("Role assigned successfully");
+
+        return ResponseEntity.noContent().build();
+    }
+
+
+    /**
+     * Revoca un rol de un usuario.
+     *
+     * Endpoint: DELETE /api/users/{userId}/roles/{roleId}
+     *
+     * Requiere: Token JWT válido + rol ROLE_ADMIN
+     *
+     * Response exitosa (204 No Content)
+     *
+     * Errores:
+     * - 404 Not Found: Usuario o rol no existe
+     */
+    @DeleteMapping("/{userId}/roles/{roleId}")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<Void> revokeRoleFromUser (
+            @PathVariable UUID userId,
+            @PathVariable UUID roleId
+    ) {
+        log.info("Revoking role {} from user {}", roleId, userId);
+
+        RevokeRoleCommand command = new RevokeRoleCommand(userId, roleId);
+
+        revokeRoleFromUserUseCase.execute(command);
+
+        log.info("Role revoked successfully");
 
         return ResponseEntity.noContent().build();
     }

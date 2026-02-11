@@ -36,18 +36,12 @@ public class RoleController {
 
     private final GetAllRolesUseCase getAllRolesUseCase;
     private final GetRoleByIdUseCase getRoleByIdUseCase;
-    private final AssignRoleToUserUseCase assignRoleToUserUseCase;
-    private final RevokeRoleFromUserUseCase revokeRoleFromUserUseCase;
 
     public RoleController(
             GetAllRolesUseCase getAllRolesUseCase,
-            GetRoleByIdUseCase getRoleByIdUseCase,
-            AssignRoleToUserUseCase assignRoleToUserUseCase,
-            RevokeRoleFromUserUseCase revokeRoleFromUserUseCase) {
+            GetRoleByIdUseCase getRoleByIdUseCase) {
         this.getAllRolesUseCase = getAllRolesUseCase;
         this.getRoleByIdUseCase = getRoleByIdUseCase;
-        this.assignRoleToUserUseCase = assignRoleToUserUseCase;
-        this.revokeRoleFromUserUseCase = revokeRoleFromUserUseCase;
     }
 
     /**
@@ -118,63 +112,6 @@ public class RoleController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Asigna un rol a un usuario.
-     *
-     * Endpoint: POST /api/users/{userId}/roles/{roleId}
-     *
-     * Requiere: Token JWT válido + rol ROLE_ADMIN
-     *
-     * Response exitosa (204 No Content)
-     *
-     * Errores:
-     * - 404 Not Found: Usuario o rol no existe
-     */
-    @GetMapping("/users/{userId}/roles/{roleId}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public ResponseEntity<Void> assignRoleToUser(
-            @PathVariable UUID userId,
-            @PathVariable UUID roleId
-    ) {
-        log.info("Assigning role {} to user {}", roleId, userId);
 
-        AssignRoleCommand command = new AssignRoleCommand(userId, roleId);
-
-        assignRoleToUserUseCase.execute(command);
-
-        log.info("Role assigned successfully");
-
-        return ResponseEntity.noContent().build();
-    }
-
-
-    /**
-     * Revoca un rol de un usuario.
-     *
-     * Endpoint: DELETE /api/users/{userId}/roles/{roleId}
-     *
-     * Requiere: Token JWT válido + rol ROLE_ADMIN
-     *
-     * Response exitosa (204 No Content)
-     *
-     * Errores:
-     * - 404 Not Found: Usuario o rol no existe
-     */
-    @DeleteMapping("/users/{userId}/roles/{roleId}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public ResponseEntity<Void> revokeRoleFromUser (
-            @PathVariable UUID userId,
-            @PathVariable UUID roleId
-    ) {
-        log.info("Revoking role {} from user {}", roleId, userId);
-
-        RevokeRoleCommand command = new RevokeRoleCommand(userId, roleId);
-
-        revokeRoleFromUserUseCase.execute(command);
-
-        log.info("Role revoked successfully");
-
-        return ResponseEntity.noContent().build();
-    }
 
 }
