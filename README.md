@@ -7,9 +7,9 @@ Sistema completo de **autenticación y autorización** construido con **Spring B
 ### Backend
 - **Java 17**
 - **Spring Boot 3.x**
-    - Spring Security (JWT, BCrypt)
-    - Spring Data JPA
-    - Spring Validation
+  - Spring Security (JWT, BCrypt)
+  - Spring Data JPA
+  - Spring Validation
 - **Arquitectura Hexagonal** (Ports & Adapters)
 - **Domain-Driven Design (DDD)**
 
@@ -196,6 +196,15 @@ src/main/java/com/andy/iamapi/
 | PUT | `/api/users/{id}` | Actualizar usuario | ROLE_ADMIN o mismo usuario |
 | PUT | `/api/users/{id}/password` | Cambiar contraseña | Mismo usuario |
 | DELETE | `/api/users/{id}` | Eliminar usuario | ROLE_ADMIN |
+| POST | `/api/users/{userId}/roles/{roleId}` | Asignar rol a usuario | ROLE_ADMIN |
+| DELETE | `/api/users/{userId}/roles/{roleId}` | Revocar rol de usuario | ROLE_ADMIN |
+
+### Gestión de Roles
+
+| Método | Endpoint | Descripción | Requiere |
+|--------|----------|-------------|----------|
+| GET | `/api/roles` | Listar todos los roles | ROLE_ADMIN |
+| GET | `/api/roles/{id}` | Obtener rol por ID | ROLE_ADMIN |
 
 ## ⚙️ Instalación y Ejecución
 
@@ -239,6 +248,64 @@ docker ps
 ```
 
 La API estará disponible en: **http://localhost:8080**
+
+## 🧪 Probar la API con Postman
+
+### Importar Collection
+
+1. **Descargar archivos:**
+  - [Postman Collection](./postman/IAM-API.postman_collection.json)
+  - [Environment](./postman/IAM-API-Local.postman_environment.json)
+
+2. **Importar en Postman:**
+  - Abre Postman
+  - Click **Import** (arriba a la izquierda)
+  - Arrastra los 2 archivos JSON
+  - Click **Import**
+
+3. **Seleccionar Environment:**
+  - Click en el dropdown de environments (arriba a la derecha)
+  - Selecciona `IAM API - Local`
+
+4. **Verificar que la API está corriendo:**
+```bash
+   ./mvnw spring-boot:run
+```
+
+### Flujo de Prueba Recomendado
+```
+1. Auth → Register            → Crea un usuario
+2. Roles → Get All Roles      → Guarda role_id de ROLE_ADMIN
+3. Auth → Login               → Guarda tokens automáticamente
+4. Users → Get My Profile     → Ver tu perfil
+5. Users → Assign Role ADMIN  → Asignar rol de admin
+6. Auth → Login (de nuevo)    → Actualizar tokens con nuevo rol
+7. Users → Get All Users      → Ahora funciona (eres admin)
+8. Users → Update User        → Actualizar datos
+9. Users → Change Password    → Cambiar contraseña
+10. Auth → Logout             → Cerrar sesión
+```
+
+### Variables de Entorno
+
+La collection usa estas variables que se guardan automáticamente:
+
+| Variable | Descripción |
+|----------|-------------|
+| `base_url` | URL base de la API (`http://localhost:8080`) |
+| `access_token` | Token JWT para autenticación (se guarda en login) |
+| `refresh_token` | Token para refrescar access token (se guarda en login) |
+| `user_id` | ID del usuario registrado (se guarda en register) |
+| `role_id` | ID del rol ROLE_ADMIN (se guarda en get all roles) |
+
+### Scripts Automáticos
+
+Los requests incluyen scripts que automatizan el flujo:
+- **Login:** Guarda `access_token` y `refresh_token` automáticamente
+- **Register:** Guarda `user_id` automáticamente
+- **Get All Roles:** Guarda `role_id` de ROLE_ADMIN automáticamente
+- **Refresh Token:** Actualiza `access_token` automáticamente
+- **Logout:** Limpia tokens automáticamente
 
 ## 🧪 Ejemplo de Uso
 
@@ -315,23 +382,22 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 ## 🔮 Futuras Mejoras
 
-- [ ] Gestión completa de roles y permisos (asignar/revocar)
+- [ ] Tests unitarios e integración completos
+- [ ] Documentación OpenAPI/Swagger
 - [ ] Paginación y filtrado en listado de usuarios
 - [ ] Rate limiting para prevenir ataques de fuerza bruta
 - [ ] Two-Factor Authentication (2FA)
 - [ ] OAuth2 con providers externos (Google, GitHub)
-- [ ] Tests unitarios e integración completos
-- [ ] Documentación OpenAPI/Swagger
 - [ ] CI/CD con GitHub Actions
 - [ ] Despliegue con Kubernetes
-- [ ] Colección de Postman/Insomnia
+- [ ] CRUD completo de roles y permisos (actualmente fijos en Flyway)
 
 ## 📚 Patrones y Buenas Prácticas Aplicadas
 
 - **Arquitectura Hexagonal**: Separación clara entre dominio, aplicación e infraestructura
 - **DDD (Domain-Driven Design)**: Entidades, Value Objects, Aggregate Roots
 - **SOLID Principles**: Single Responsibility, Dependency Inversion, Open/Closed
-- **Factory Pattern**: Creación de entidades de dominio
+- **Factory Pattern**: Creación de entidades de dominio (`User.create()`, `User.reconstitute()`)
 - **Repository Pattern**: Abstracción de acceso a datos
 - **Strategy Pattern**: PasswordEncoder, TokenService
 - **Immutability**: Objetos de dominio inmutables con `reconstitute()`
@@ -348,13 +414,10 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 **GitHub**: [github.com/AndyCipleu](https://github.com/AndyCipleu)
 
-## 📄 Licencia y Derechos de Autor
+## 📄 Licencia
 
-Copyright © 2026 **Andy Cipleu**. Todos los derechos reservados.
+Este proyecto es de código abierto desarrollado por **Andy Cipleu** y está disponible bajo la [Licencia MIT](LICENSE).
 
-Este proyecto está disponible públicamente con fines educativos y de demostración.
-El código puede ser visualizado y utilizado como referencia de aprendizaje, pero
-**no está permitido** su uso comercial, distribución o reproducción sin autorización
-expresa del autor.
+Copyright © 2026 Andy Cipleu. Todos los derechos reservados.
 
-Para consultas sobre uso comercial, contactar a: andycipleu@gmail.com
+---
