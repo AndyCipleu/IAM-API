@@ -198,7 +198,7 @@ public class UserController {
      * - 400 Bad Request: Nueva contraseña no cumple requisitos
      * - 403 Forbidden: Solo puedes cambiar tu propia contraseña
      */
-    @GetMapping("/{id}/password")
+    @PutMapping("/{id}/password")
     @PreAuthorize("#id == authentication.principal.id")
     public ResponseEntity<Void> changePassword(
             @PathVariable UUID id,
