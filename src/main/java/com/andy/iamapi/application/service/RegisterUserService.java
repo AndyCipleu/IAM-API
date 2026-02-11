@@ -112,7 +112,9 @@ public class RegisterUserService implements RegisterUserUseCase {
 
         //Asignar rol por defecto
         Role defaultRole = roleRepository.findByName(DEFAULT_ROLE)
-                .orElseThrow(() -> new RoleNotFoundException(DEFAULT_ROLE));
+                .orElseThrow(() -> {
+                    return new RoleNotFoundException(DEFAULT_ROLE);
+                });
 
         user.addRole(defaultRole);
 
