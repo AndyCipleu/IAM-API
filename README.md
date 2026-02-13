@@ -2,6 +2,8 @@
 
 Sistema completo de **autenticación y autorización** construido con **Spring Boot 3** y **arquitectura hexagonal**, implementando JWT tokens, gestión de usuarios, roles y permisos con control de acceso basado en roles (RBAC).
 
+---
+
 ## 🚀 Tecnologías Utilizadas
 
 ### Backend
@@ -22,7 +24,13 @@ Sistema completo de **autenticación y autorización** construido con **Spring B
 - **Docker & Docker Compose**
 - **Logback** (logging y auditoría)
 
+### Documentación
+- **Swagger/OpenAPI 3.0** (documentación interactiva de la API)
+
+---
+
 ## 🏗️ Arquitectura del Sistema
+
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                    REST API Layer                       │
@@ -48,6 +56,7 @@ Sistema completo de **autenticación y autorización** construido con **Spring B
 ```
 
 ### Flujo de Autenticación
+
 ```
 1. Usuario → POST /api/auth/login (email + password)
 2. AuthenticateUserService verifica credenciales con BCrypt
@@ -58,6 +67,8 @@ Sistema completo de **autenticación y autorización** construido con **Spring B
 6. SecurityContext establece usuario autenticado
 7. Controller accede al usuario y ejecuta lógica
 ```
+
+---
 
 ## 📐 Características Principales
 
@@ -72,9 +83,10 @@ Sistema completo de **autenticación y autorización** construido con **Spring B
 - Actualización de perfil (nombre, apellido, email)
 - Cambio de contraseña con verificación de password actual
 - Eliminación de usuarios (soft/hard delete)
+- Asignación y revocación de roles
 
 ### 🛡️ Control de Acceso (RBAC)
-- **Roles**: ROLE_USER, ROLE_ADMIN, ROLE_MODERATOR
+- **Roles predefinidos**: ROLE_USER, ROLE_ADMIN, ROLE_MODERATOR
 - **Permisos**: Granularidad a nivel de recurso + acción
 - **Autorización a nivel de método**: `@PreAuthorize`
 - **Expresiones SpEL**: Admin o mismo usuario
@@ -91,56 +103,35 @@ Sistema completo de **autenticación y autorización** construido con **Spring B
 - **Redis**: Blacklist de tokens revocados con TTL automático
 - **Flyway**: Migraciones versionadas con datos iniciales
 
+---
+
 ## 📁 Estructura del Proyecto
+
 ```
 src/main/java/com/andy/iamapi/
 ├── domain/                          # Capa de dominio (lógica de negocio)
 │   ├── model/                       # Entidades del dominio
-│   │   ├── User.java
-│   │   ├── Role.java
-│   │   └── Permission.java
 │   ├── port/                        # Puertos (interfaces)
 │   │   ├── input/                   # Casos de uso
-│   │   │   ├── RegisterUserUseCase.java
-│   │   │   ├── AuthenticateUserUseCase.java
-│   │   │   └── ...
 │   │   └── output/                  # Puertos de salida
-│   │       ├── UserRepository.java
-│   │       ├── TokenService.java
-│   │       └── ...
 │   ├── exception/                   # Excepciones de dominio
-│   └── util/                        # Utilidades (PasswordValidator)
+│   └── util/                        # Utilidades
 │
 ├── application/                     # Capa de aplicación (orquestación)
-│   └── service/
-│       ├── RegisterUserService.java
-│       ├── AuthenticateUserService.java
-│       └── ...
+│   └── service/                     # Servicios de casos de uso
 │
 └── infrastructure/                  # Capa de infraestructura
     ├── adapter/
     │   ├── persistence/             # Adaptadores de BD
-    │   │   ├── entity/              # JPA Entities
-    │   │   ├── repository/          # JPA Repositories
-    │   │   ├── mapper/              # Mappers Entity ↔ Domain
-    │   │   └── *RepositoryAdapter.java
     │   ├── security/                # Adaptadores de seguridad
-    │   │   ├── JwtTokenService.java
-    │   │   ├── BCryptPasswordEncoderAdapter.java
-    │   │   ├── RedisTokenBlacklist.java
-    │   │   └── LoggerAuditAdapter.java
     │   └── rest/                    # Adaptadores REST
-    │       ├── controller/
-    │       ├── dto/
-    │       └── exception/
     └── config/                      # Configuración
-        ├── SecurityConfig.java
-        ├── RedisConfig.java
-        └── security/
-            └── JwtAuthenticationFilter.java
 ```
 
+---
+
 ## 🗄️ Diagrama de Base de Datos
+
 ```sql
 ┌─────────────┐       ┌──────────────┐       ┌─────────────────┐
 │   users     │       │  user_roles  │       │     roles       │
@@ -170,41 +161,49 @@ src/main/java/com/andy/iamapi/
                       └─────────────────┘
 ```
 
-## 🔧 API Endpoints
+---
 
-### Autenticación (Públicos)
+## 📚 Documentación de la API
 
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| POST | `/api/auth/register` | Registrar nuevo usuario |
-| POST | `/api/auth/login` | Autenticar y obtener tokens |
-| POST | `/api/auth/refresh` | Renovar access token |
+La API está completamente documentada con **Swagger/OpenAPI 3.0**.
 
-### Autenticación (Protegidos)
+### 🔗 Acceder a Swagger UI
 
-| Método | Endpoint | Descripción | Requiere |
-|--------|----------|-------------|----------|
-| POST | `/api/auth/logout` | Cerrar sesión (revocar tokens) | Token válido |
+Una vez la aplicación esté corriendo, accede a:
 
-### Gestión de Usuarios
+```
+http://localhost:8080/swagger-ui.html
+```
 
-| Método | Endpoint | Descripción | Requiere |
-|--------|----------|-------------|----------|
-| GET | `/api/users/me` | Obtener mi perfil | Token válido |
-| GET | `/api/users` | Listar todos los usuarios | ROLE_ADMIN |
-| GET | `/api/users/{id}` | Obtener usuario por ID | ROLE_ADMIN |
-| PUT | `/api/users/{id}` | Actualizar usuario | ROLE_ADMIN o mismo usuario |
-| PUT | `/api/users/{id}/password` | Cambiar contraseña | Mismo usuario |
-| DELETE | `/api/users/{id}` | Eliminar usuario | ROLE_ADMIN |
-| POST | `/api/users/{userId}/roles/{roleId}` | Asignar rol a usuario | ROLE_ADMIN |
-| DELETE | `/api/users/{userId}/roles/{roleId}` | Revocar rol de usuario | ROLE_ADMIN |
+### 📖 Swagger incluye:
 
-### Gestión de Roles
+- ✅ **Listado completo de endpoints** organizados por categorías
+- ✅ **Descripción detallada** de cada operación
+- ✅ **Esquemas de request/response** con ejemplos
+- ✅ **Códigos de estado HTTP** y sus significados
+- ✅ **Autenticación JWT integrada** (botón Authorize 🔒)
+- ✅ **Interfaz interactiva** para probar la API directamente
 
-| Método | Endpoint | Descripción | Requiere |
-|--------|----------|-------------|----------|
-| GET | `/api/roles` | Listar todos los roles | ROLE_ADMIN |
-| GET | `/api/roles/{id}` | Obtener rol por ID | ROLE_ADMIN |
+### 🔑 Autenticación en Swagger:
+
+1. Ejecutar `POST /api/auth/register` para crear un usuario
+2. Ejecutar `POST /api/auth/login` para obtener tokens
+3. Copiar el `accessToken` de la respuesta
+4. Hacer clic en el botón **Authorize** 🔒
+5. Pegar el token y hacer clic en **Authorize**
+6. ¡Listo! Ya puedes probar todos los endpoints protegidos
+
+### 📥 Especificación OpenAPI (JSON)
+
+También puedes obtener la especificación OpenAPI en formato JSON:
+
+```
+http://localhost:8080/v3/api-docs
+```
+
+Este JSON se puede importar en otras herramientas como Postman, Insomnia, o generadores de clientes API.
+
+---
 
 ## ⚙️ Instalación y Ejecución
 
@@ -214,6 +213,7 @@ src/main/java/com/andy/iamapi/
 - Docker & Docker Compose
 
 ### 1. Clonar el repositorio
+
 ```bash
 git clone https://github.com/tuusuario/iam-api.git
 cd iam-api
@@ -222,6 +222,7 @@ cd iam-api
 ### 2. Configuración
 
 **Archivo `application.yml`:**
+
 ```yaml
 jwt:
   secret: tu-clave-secreta-de-256-bits-minimo-para-jwt-tokens
@@ -229,7 +230,10 @@ jwt:
   refresh-expiration: 604800000  # 7 días
 ```
 
+> ⚠️ **IMPORTANTE**: Cambia el `jwt.secret` en producción por una clave segura.
+
 ### 3. Levantar infraestructura con Docker
+
 ```bash
 # Levantar PostgreSQL y Redis
 docker-compose up -d
@@ -239,6 +243,7 @@ docker ps
 ```
 
 ### 4. Ejecutar aplicación
+
 ```bash
 # Compilar
 ./mvnw clean install
@@ -249,148 +254,77 @@ docker ps
 
 La API estará disponible en: **http://localhost:8080**
 
-## 🧪 Probar la API con Postman
+### 5. Acceder a Swagger UI
 
-### Importar Collection
+```
+http://localhost:8080/swagger-ui.html
+```
 
-1. **Descargar archivos:**
-  - [Postman Collection](./postman/IAM-API.postman_collection.json)
-  - [Environment](./postman/IAM-API-Local.postman_environment.json)
+---
 
-2. **Importar en Postman:**
-  - Abre Postman
-  - Click **Import** (arriba a la izquierda)
-  - Arrastra los 2 archivos JSON
-  - Click **Import**
+## 🧪 Probar la API
 
-3. **Seleccionar Environment:**
-  - Click en el dropdown de environments (arriba a la derecha)
-  - Selecciona `IAM API - Local`
+### Opción 1: Swagger UI (Recomendado)
 
-4. **Verificar que la API está corriendo:**
+La forma más fácil es usar la **interfaz Swagger** incluida:
+
+1. Accede a http://localhost:8080/swagger-ui.html
+2. Sigue el flujo de autenticación explicado arriba
+3. Prueba todos los endpoints interactivamente
+
+### Opción 2: Postman
+
+Si prefieres Postman, hay una colección lista para usar:
+
+1. Importar archivos:
+   - `Postman/IAM API.postman_collection.json`
+   - `Postman/IAM API - Local.postman_environment.json`
+2. Seleccionar el environment `IAM API - Local`
+3. Seguir el flujo: Register → Login → Usar endpoints
+
+### Opción 3: cURL
+
 ```bash
-   ./mvnw spring-boot:run
+# 1. Registrar usuario
+curl -X POST http://localhost:8080/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "test@example.com",
+    "password": "Test123",
+    "firstName": "Test",
+    "lastName": "User"
+  }'
+
+# 2. Login
+curl -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "test@example.com",
+    "password": "Test123"
+  }'
+
+# 3. Usar token en endpoints protegidos
+curl -X GET http://localhost:8080/api/users/me \
+  -H "Authorization: Bearer {tu-access-token-aquí}"
 ```
 
-### Flujo de Prueba Recomendado
-```
-1. Auth → Register            → Crea un usuario
-2. Roles → Get All Roles      → Guarda role_id de ROLE_ADMIN
-3. Auth → Login               → Guarda tokens automáticamente
-4. Users → Get My Profile     → Ver tu perfil
-5. Users → Assign Role ADMIN  → Asignar rol de admin
-6. Auth → Login (de nuevo)    → Actualizar tokens con nuevo rol
-7. Users → Get All Users      → Ahora funciona (eres admin)
-8. Users → Update User        → Actualizar datos
-9. Users → Change Password    → Cambiar contraseña
-10. Auth → Logout             → Cerrar sesión
-```
+---
 
-### Variables de Entorno
-
-La collection usa estas variables que se guardan automáticamente:
-
-| Variable | Descripción |
-|----------|-------------|
-| `base_url` | URL base de la API (`http://localhost:8080`) |
-| `access_token` | Token JWT para autenticación (se guarda en login) |
-| `refresh_token` | Token para refrescar access token (se guarda en login) |
-| `user_id` | ID del usuario registrado (se guarda en register) |
-| `role_id` | ID del rol ROLE_ADMIN (se guarda en get all roles) |
-
-### Scripts Automáticos
-
-Los requests incluyen scripts que automatizan el flujo:
-- **Login:** Guarda `access_token` y `refresh_token` automáticamente
-- **Register:** Guarda `user_id` automáticamente
-- **Get All Roles:** Guarda `role_id` de ROLE_ADMIN automáticamente
-- **Refresh Token:** Actualiza `access_token` automáticamente
-- **Logout:** Limpia tokens automáticamente
-
-## 🧪 Ejemplo de Uso
-
-### 1. Registrar Usuario
-```bash
-POST http://localhost:8080/api/auth/register
-Content-Type: application/json
-
-{
-  "email": "john.doe@example.com",
-  "password": "SecurePass123",
-  "firstName": "John",
-  "lastName": "Doe"
-}
-```
-
-**Response (201 Created):**
-```json
-{
-  "id": "a3c7ef12-9b4d-4f8a-b123-456789abcdef",
-  "email": "john.doe@example.com",
-  "firstName": "John",
-  "lastName": "Doe",
-  "enabled": true,
-  "roles": ["ROLE_USER"],
-  "createdAt": "2026-02-11T10:30:45"
-}
-```
-
-### 2. Login
-```bash
-POST http://localhost:8080/api/auth/login
-Content-Type: application/json
-
-{
-  "email": "john.doe@example.com",
-  "password": "SecurePass123"
-}
-```
-
-**Response (200 OK):**
-```json
-{
-  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "tokenType": "Bearer",
-  "expiresIn": 3600,
-  "user": {
-    "email": "john.doe@example.com",
-    "firstName": "John",
-    "lastName": "Doe"
-  }
-}
-```
-
-### 3. Obtener Mi Perfil
-```bash
-GET http://localhost:8080/api/users/me
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-```
-
-**Response (200 OK):**
-```json
-{
-  "id": "a3c7ef12-9b4d-4f8a-b123-456789abcdef",
-  "email": "john.doe@example.com",
-  "firstName": "John",
-  "lastName": "Doe",
-  "enabled": true,
-  "roles": ["ROLE_USER"],
-  "createdAt": "2026-02-11T10:30:45"
-}
-```
-
-## 🔮 Futuras Mejoras
+## 🔮 Roadmap / Próximas Mejoras
 
 - [ ] Tests unitarios e integración completos
-- [ ] Documentación OpenAPI/Swagger
 - [ ] Paginación y filtrado en listado de usuarios
 - [ ] Rate limiting para prevenir ataques de fuerza bruta
 - [ ] Two-Factor Authentication (2FA)
 - [ ] OAuth2 con providers externos (Google, GitHub)
+- [ ] Email verification al registrarse
+- [ ] Password reset flow
+- [ ] Account locking después de intentos fallidos
+- [ ] Auditoría persistente en base de datos
 - [ ] CI/CD con GitHub Actions
 - [ ] Despliegue con Kubernetes
-- [ ] CRUD completo de roles y permisos (actualmente fijos en Flyway)
+
+---
 
 ## 📚 Patrones y Buenas Prácticas Aplicadas
 
@@ -404,6 +338,24 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 - **DTO Pattern**: Separación entre modelos de dominio y API
 - **Validation**: Bean Validation en DTOs, validaciones de negocio en dominio
 
+---
+
+## 🛠️ Tecnologías y Dependencias Principales
+
+| Dependencia | Versión | Propósito |
+|-------------|---------|-----------|
+| Spring Boot | 3.4.x | Framework base |
+| Spring Security | 6.x | Autenticación y autorización |
+| Spring Data JPA | 3.x | Acceso a datos |
+| PostgreSQL | 16 | Base de datos relacional |
+| Redis | 7 | Cache y blacklist de tokens |
+| Flyway | 10.x | Migraciones de BD |
+| jjwt | 0.12.6 | Generación y validación de JWT |
+| Lombok | - | Reducción de boilerplate |
+| SpringDoc OpenAPI | 2.6.0 | Documentación Swagger |
+
+---
+
 ## ✉️ Autor / Contacto
 
 **Nombre**: Andy Cipleu
@@ -414,6 +366,8 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 **GitHub**: [github.com/AndyCipleu](https://github.com/AndyCipleu)
 
+---
+
 ## 📄 Licencia
 
 Este proyecto es de código abierto desarrollado por **Andy Cipleu** y está disponible bajo la [Licencia MIT](LICENSE).
@@ -421,3 +375,11 @@ Este proyecto es de código abierto desarrollado por **Andy Cipleu** y está dis
 Copyright © 2026 Andy Cipleu. Todos los derechos reservados.
 
 ---
+
+## 🙏 Agradecimientos
+
+Gracias por revisar este proyecto. Si tienes sugerencias o encuentras algún problema, no dudes en abrir un issue o contactarme directamente.
+
+---
+
+**⭐ Si te gusta este proyecto, considera darle una estrella en GitHub!**
