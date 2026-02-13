@@ -6,6 +6,10 @@ import com.andy.iamapi.domain.port.output.UserRepository;
 import com.andy.iamapi.infrastructure.adapter.persistance.entity.UserEntity;
 import com.andy.iamapi.infrastructure.adapter.persistance.mapper.UserMapper;
 import com.andy.iamapi.infrastructure.adapter.persistance.repository.UserJpaRepository;
+import com.andy.iamapi.infrastructure.adapter.persistance.specification.UserSpecifications;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -111,6 +115,52 @@ public class UserRepositoryAdapter implements UserRepository {
                 .stream()
                 .map(mapper::toDomain)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Busca usuarios con paginación y filtros opcionales.
+     *
+     * Construye una Specification dinámica basada en los filtros proporcionados
+     * y ejecuta la query con paginación.
+     *
+     * Flujo:
+     * 1. Construir Specification con los filtros activos
+     * 2. Ejecutar query paginada con JPA
+     * 3. Mapear UserEntity → User (dominio)
+     * 4. Retornar Page<User>
+     *
+     * @param email Filtro de email (opcional)
+     * @param firstName Filtro de nombre (opcional)
+     * @param lastName Filtro de apellido (opcional)
+     * @param enabled Filtro de estado (opcional)
+     * @param roleName Filtro de rol (opcional)
+     * @param pageable Configuración de paginación
+     * @return Page con usuarios del dominio
+     */
+    @Override
+    public Page<User> findAllWithFilters(
+            String email,
+            String firstName,
+            String lastName,
+            Boolean enabled,
+            String roleName,
+            Pageable pageable
+    ) {
+        // 1. Construir la specification dinámica con los filtros
+        Specification<UserEntity> spec = UserSpecifications.withFilters(
+                email,
+                firstName,
+                lastName,
+                enabled,
+                roleName
+        );
+
+        // 2. Ejecutar query con JPA + Specification + Pageable
+        Page<UserEntity> entityPage = jpaRepository.findAll(spec, pageable);
+
+        // 3. Mapear Page<UserEntity> → Page<User>
+        // Page.map() transforma el contenido pero mantiene la metadata de paginación
+        return entityPage.map(mapper::toDomain);
     }
 
     /**

@@ -3,16 +3,22 @@ package com.andy.iamapi.infrastructure.adapter.rest.controller;
 import com.andy.iamapi.domain.model.User;
 import com.andy.iamapi.domain.port.input.*;
 import com.andy.iamapi.domain.port.input.AssignRoleToUserUseCase;
+import com.andy.iamapi.domain.port.input.GetAllUsersWithPaginationUseCase.GetUsersCommand;
+import com.andy.iamapi.domain.port.input.GetAllUsersWithPaginationUseCase;
 import com.andy.iamapi.domain.port.input.RevokeRoleFromUserUseCase;
 import com.andy.iamapi.domain.port.input.RevokeRoleFromUserUseCase.RevokeRoleCommand;
 import com.andy.iamapi.domain.port.input.AssignRoleToUserUseCase.AssignRoleCommand;
 import com.andy.iamapi.infrastructure.adapter.rest.dto.request.ChangePasswordRequest;
 import com.andy.iamapi.infrastructure.adapter.rest.dto.request.UpdateUserRequest;
+import com.andy.iamapi.infrastructure.adapter.rest.dto.request.UserFilterRequest;
+import com.andy.iamapi.infrastructure.adapter.rest.dto.response.PageResponse;
 import com.andy.iamapi.infrastructure.adapter.rest.dto.response.UserListResponse;
 import com.andy.iamapi.infrastructure.adapter.rest.dto.response.UserResponse;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -62,7 +68,7 @@ public class UserController {
     private static final Logger log = LoggerFactory.getLogger(UserController.class);
 
     private final GetCurrentUserUseCase getCurrentUserUseCase;
-    private final GetAllUsersUseCase getAllUsersUseCase;
+    private final GetAllUsersWithPaginationUseCase getAllUsersWithPaginationUseCase;
     private final GetUserByIdUseCase getUserByIdUseCase;
     private final UpdateUserUseCase updateUserUseCase;
     private final ChangePasswordUseCase changePasswordUseCase;
@@ -73,7 +79,7 @@ public class UserController {
 
     public UserController(
             GetCurrentUserUseCase getCurrentUserUseCase,
-            GetAllUsersUseCase getAllUsersUseCase,
+            GetAllUsersWithPaginationUseCase getAllUsersWithPaginationUseCase,
             GetUserByIdUseCase getUserByIdUseCase,
             UpdateUserUseCase updateUserUseCase,
             ChangePasswordUseCase changePasswordUseCase,
@@ -81,7 +87,7 @@ public class UserController {
             AssignRoleToUserUseCase assignRoleToUserUseCase,
             RevokeRoleFromUserUseCase revokeRoleFromUserUseCase) {
         this.getCurrentUserUseCase = getCurrentUserUseCase;
-        this.getAllUsersUseCase = getAllUsersUseCase;
+        this.getAllUsersWithPaginationUseCase = getAllUsersWithPaginationUseCase;
         this.getUserByIdUseCase = getUserByIdUseCase;
         this.updateUserUseCase = updateUserUseCase;
         this.changePasswordUseCase = changePasswordUseCase;
@@ -173,50 +179,65 @@ public class UserController {
     }
 
     /**
-     * Lista todos los usuarios del sistema.
+     * Lista usuarios con paginación y filtros opcionales.
      *
-     * Endpoint restringido solo para administradores.
-     * Retorna todos los usuarios con sus roles y estado.
+     * Endpoint que permite buscar usuarios aplicando múltiples filtros
+     * y retornar resultados paginados para mejor rendimiento.
      *
-     * @return Lista de UserResponse con todos los usuarios
+     * Requiere rol ROLE_ADMIN.
+     *
+     * @param filters Filtros opcionales (email, firstName, lastName, enabled, role)
+     * @param pageable Configuración de paginación (page, size, sort)
+     * @return PageResponse con los usuarios encontrados y metadata de paginación
      */
     @GetMapping
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     @Operation(
-            summary = "Listar todos los usuarios",
+            summary = "Listar usuarios con paginación y filtros",
             description = """
-                    Obtiene la lista completa de usuarios registrados en el sistema.
+                    Obtiene una lista paginada de usuarios con filtros opcionales.
                     
-                    **Restricciones:**
-                    - Solo accesible por usuarios con rol ROLE_ADMIN
-                    - Retorna todos los usuarios sin paginación (por ahora)
+                    **Paginación:**
+                    - `page`: Número de página (0-indexed, default: 0)
+                    - `size`: Elementos por página (default: 10, max: 100)
+                    - `sort`: Campo y dirección (ej: email,asc o createdAt,desc)
                     
-                    **Información incluida:**
-                    - Datos básicos (id, email, nombres)
-                    - Estado (habilitado/deshabilitado)
-                    - Roles asignados a cada usuario
-                    - Fechas de creación
+                    **Filtros disponibles (todos opcionales):**
+                    - `email`: Búsqueda parcial case-insensitive (ej: "john" encuentra "john@test.com")
+                    - `firstName`: Búsqueda parcial case-insensitive
+                    - `lastName`: Búsqueda parcial case-insensitive
+                    - `enabled`: true/false para filtrar por estado
+                    - `role`: Nombre exacto del rol (ej: ROLE_ADMIN, ROLE_USER)
+                    
+                    **Ejemplos de uso:**
+                    - `/api/users?page=0&size=10` - Primera página, 10 elementos
+                    - `/api/users?page=1&size=20&sort=email,asc` - Segunda página, ordenado por email
+                    - `/api/users?email=john&enabled=true` - Usuarios habilitados con "john" en el email
+                    - `/api/users?role=ROLE_ADMIN` - Solo administradores
+                    - `/api/users?firstName=John&lastName=Doe&role=ROLE_USER` - Múltiples filtros
+                    
+                    **Ordenamiento:**
+                    Puedes ordenar por: email, firstName, lastName, createdAt, enabled
+                    Dirección: asc (ascendente) o desc (descendente)
                     
                     **Casos de uso:**
-                    - Panel de administración de usuarios
-                    - Auditoría de cuentas del sistema
-                    - Gestión de roles y permisos
-                    
-                    **Nota:** En una versión futura se añadirá paginación y filtros.
+                    - Panel de administración con búsqueda y paginación
+                    - Exportar usuarios filtrados por criterios específicos
+                    - Buscar usuarios por nombre/email para asignar roles
                     """
     )
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "Lista de usuarios obtenida exitosamente",
+                    description = "Lista paginada obtenida exitosamente",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = UserListResponse.class),
+                            schema = @Schema(implementation = PageResponse.class),
                             examples = @ExampleObject(
-                                    name = "Lista de usuarios",
+                                    name = "Página de usuarios",
                                     value = """
                                         {
-                                          "users": [
+                                          "content": [
                                             {
                                               "id": "a3c7ef12-9b4d-4f8a-b123-456789abcdef",
                                               "email": "admin@example.com",
@@ -234,52 +255,89 @@ public class UserController {
                                               "roles": ["ROLE_USER"]
                                             }
                                           ],
-                                          "total": 2
-                                        }
-                    """
-                            )
-                    )
-            ),
-            @ApiResponse(
-                    responseCode = "401",
-                    description = "No autenticado",
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    value = """
-                                        {
-                                          "status": 401,
-                                          "message": "Full authentication is required"
+                                          "page": {
+                                            "size": 10,
+                                            "number": 0,
+                                            "totalElements": 45,
+                                            "totalPages": 5
+                                          }
                                         }
                                         """
                             )
                     )
             ),
             @ApiResponse(
-                    responseCode = "403",
-                    description = "Sin permisos (no es ROLE_ADMIN)",
+                    responseCode = "400",
+                    description = "Parámetros de paginación inválidos",
                     content = @Content(
                             mediaType = "application/json",
                             examples = @ExampleObject(
-                                    name = "Acceso denegado",
+                                    name = "Error de paginación",
                                     value = """
-                    {
-                      "status": 403,
-                      "message": "Access Denied"
-                    }
-                    """
+                                        {
+                                          "status": 400,
+                                          "message": "Page index must not be less than zero"
+                                        }
+                                        """
                             )
                     )
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "No autenticado"
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Sin permisos (no es ROLE_ADMIN)"
             )
     })
-    public ResponseEntity<UserListResponse> getAllUsers() {
-        log.debug("Getting all users");
+    public ResponseEntity<PageResponse<UserResponse>> getAllUsers(
+            @Parameter(hidden = true)  // Los filtros se documentan en UserFilterRequest
+            UserFilterRequest filters,
+            @Parameter(
+                    description = "Configuración de paginación y ordenamiento",
+                    examples = {
+                            @ExampleObject(name = "Primera página", value = "page=0&size=10"),
+                            @ExampleObject(name = "Ordenar por email", value = "sort=email,asc"),
+                            @ExampleObject(name = "Completo", value = "page=1&size=20&sort=createdAt,desc")
+                    }
+            )
+            Pageable pageable
+    ) {
+        log.debug("Getting users with pagination - page: {}, size: {}, sort: {}, filters: {}",
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                pageable.getSort(),
+                filters
+        );
 
-        List<User> users = getAllUsersUseCase.execute();
+        // 1. Crear comando con filtros y paginación
+        GetUsersCommand command = new GetUsersCommand(
+                filters.email(),
+                filters.firstName(),
+                filters.lastName(),
+                filters.enabled(),
+                filters.role(),
+                pageable
+        );
 
-        UserListResponse response = UserListResponse.fromDomain(users);
+        // 2. Ejecutar caso de uso (retorna Page<User> del dominio)
+        Page<User> userPage = getAllUsersWithPaginationUseCase.execute(command);
+
+        // 3. Mapear Page<User> → Page<UserResponse> (DTOs)
+        Page<UserResponse> responsePage = userPage.map(UserResponse::fromDomain);
+
+        // 4. Envolver en PageResponse (nuestro DTO de respuesta)
+        PageResponse<UserResponse> response = PageResponse.fromPage(responsePage);
+
+        log.debug("Returning {} users from page {} of {}",
+                response.content().size(),
+                response.page().number(),
+                response.page().totalPages()
+        );
 
         return ResponseEntity.ok(response);
+
     }
 
     /**

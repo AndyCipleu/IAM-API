@@ -2,6 +2,8 @@ package com.andy.iamapi.domain.port.output;
 
 
 import com.andy.iamapi.domain.model.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.Optional;
@@ -43,6 +45,28 @@ public interface UserRepository {
      */
     List<User> findAll();
 
+    /**
+     * Busca usuarios con paginación y filtros opcionales.
+     *
+     * Permite buscar usuarios aplicando múltiples criterios de filtrado
+     * y retornar resultados paginados.
+     *
+     * @param email Filtro de email (opcional, búsqueda parcial)
+     * @param firstName Filtro de nombre (opcional, búsqueda parcial)
+     * @param lastName Filtro de apellido (opcional, búsqueda parcial)
+     * @param enabled Filtro de estado habilitado (opcional)
+     * @param roleName Filtro por nombre de rol (opcional)
+     * @param pageable Configuración de paginación (página, tamaño, ordenamiento)
+     * @return Page con los usuarios que cumplen los criterios
+     */
+    Page<User> findAllWithFilters(
+            String email,
+            String firstName,
+            String lastName,
+            Boolean enabled,
+            String roleName,
+            Pageable pageable
+    );
     /**
      * Verifica si existe un usuario con el email dado
      * @param email Email a verificar
