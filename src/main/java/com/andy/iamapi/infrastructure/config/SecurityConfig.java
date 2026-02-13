@@ -64,6 +64,13 @@ public class SecurityConfig {
                         // Endpoints PÚBLICOS (sin token)
                         .requestMatchers("/api/auth/**").permitAll() //register, login, logout y refresh
 
+                        // Swagger/OpenAPI endpoints (públicos para documentación)
+                        .requestMatchers(
+                                "/v3/api-docs/**",      // OpenAPI JSON
+                                "/swagger-ui/**",        // Recursos de Swagger UI (CSS, JS)
+                                "/swagger-ui.html"       // Página principal de Swagger
+                        ).permitAll()
+
                         // Todos los demás endpoints requieren AUTENTICACIÓN
                         .anyRequest().authenticated())
 

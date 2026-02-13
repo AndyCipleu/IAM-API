@@ -31,28 +31,36 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+// ===== Imports de OpenAPI/Swagger =====
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 
 /**
  * Controller REST para endpoints de autenticación.
  *
- * Endpoints:
- * - POST /api/auth/register - Registrar nuevo usuario
- * - POST /api/auth/login - Autenticar usuario (TODO: implementar cuando tengamos JWT)
- * - POST /api/auth/refresh - Refrescar token (TODO: implementar)
- * - POST /api/auth/logout - Cerrar sesión (TODO: implementar)
+ * Gestiona el ciclo de vida de autenticación de usuarios:
+ * - Registro de nuevos usuarios
+ * - Login y generación de tokens JWT
+ * - Refresh de tokens expirados
+ * - Logout y revocación de tokens
  *
- * Este controller es la CAPA de entrada REST.
- * Responsabilidades:
- * - Recibir requests HTTP
- * - Validar DTOs (automático con Valid)
- * - Convertir DTOs a Commands
- * - Llamar a los use cases (puertos)
- * - Convertir domain models a DTOs de respuesta
- * - Retornar responses HTTP
- *
+ * Este controller es la CAPA de entrada REST (Infrastructure Layer).
  */
 @RestController
 @RequestMapping("/api/auth")
+@Tag(
+        name = "Authentication",
+        description = "Endpoints de autenticación y gestión de tokens JWT. " +
+                "Incluye registro, login, refresh y logout."
+)
 public class AuthController {
 
     private static final Logger log = LoggerFactory.getLogger(AuthController.class);
@@ -77,44 +85,100 @@ public class AuthController {
         this.logoutUseCase = logoutUseCase;
     }
 
-/**
- * Registra un nuevo usuario en el sistema.
- *
- * Endpoint: POST /api/auth/register
- *
- * Request body (JSON):
- * {
- *   "email": "john@example.com",
- *   "password": "Password123",
- *   "firstName": "John",
- *   "lastName": "Doe"
- * }
- *
- * Response exitosa (201 Created):
- * {
- *   "id": "uuid-123",
- *   "email": "john@example.com",
- *   "firstName": "John",
- *   "lastName": "Doe",
- *   "enabled": true,
- *   "roles": ["ROLE_USER"],
- *   "createdAt": "2026-02-02T15:30:45"
- * }
- *
- * Errores posibles:
- * - 400 Bad Request: Validación falló (email inválido, password corta)
- * - 409 Conflict: Email ya existe
- *
- * Valid: Ejecuta validaciones de Bean Validation del DTO
- * Si falla, Spring lanza MethodArgumentNotValidException
- * (capturada por GlobalExceptionHandler)
- *
- * RequestBody: Convierte JSON del request a RegisterUserRequest automáticamente
- *
- * @param request DTO con datos del nuevo usuario
- * @return ResponseEntity con UserResponse y status 201
- */
+
+    /**
+     * Registra un nuevo usuario en el sistema.
+     *
+     * Endpoint público que no requiere autenticación previa.
+     * Crea un usuario con rol ROLE_USER por defecto.
+     * El email debe ser único en el sistema.
+     * La contraseña debe cumplir: mínimo 8 caracteres, mayúsculas, minúsculas y números.
+     *
+     * @param request DTO con datos del nuevo usuario (email, password, firstName, lastName)
+     * @return UserResponse con los datos del usuario creado (sin password)
+     */
 @PostMapping("/register")
+@Operation(
+        summary = "Registrar nuevo usuario",
+        description = """
+                Crea una nueva cuenta de usuario en el sistema.
+                
+                **Requisitos:**
+                - Email válido y único
+                - Password: mínimo 8 caracteres, incluir mayúsculas, minúsculas y números
+                - firstName y lastName son obligatorios
+                
+                **Comportamiento:**
+                - Usuario creado con rol ROLE_USER por defecto
+                - Password hasheada con BCrypt antes de guardar
+                - Usuario habilitado automáticamente (enabled=true)
+                
+                **Ejemplo de uso:**
+                1. Llamar a este endpoint con los datos del usuario
+                2. Si es exitoso, hacer login con el mismo email/password
+                3. Usar el token recibido en login para acceder a endpoints protegidos
+                """
+)
+@ApiResponses(value = {
+        @ApiResponse(
+                responseCode = "201",
+                description = "Usuario registrado exitosamente",
+                content = @Content(
+                        mediaType = "application/json",
+                        schema = @Schema(implementation = UserResponse.class),
+                        examples = @ExampleObject(
+                                name = "Usuario creado",
+                                value = """
+                                    {
+                                      "id": "a3c7ef12-9b4d-4f8a-b123-456789abcdef",
+                                      "email": "john.doe@example.com",
+                                      "firstName": "John",
+                                      "lastName": "Doe",
+                                      "enabled": true,
+                                      "roles": ["ROLE_USER"]
+                                    }
+                                    """
+                        )
+                )
+        ),
+        @ApiResponse(
+                responseCode = "400",
+                description = "Datos de entrada inválidos (validación falló)",
+                content = @Content(
+                        mediaType = "application/json",
+                        examples = @ExampleObject(
+                                name = "Error de validación",
+                                value = """
+                                    {
+                                      "status": 400,
+                                      "message": "Validation failed",
+                                      "errors": {
+                                        "email": "Email inválido",
+                                        "password": "La contraseña debe tener al menos 8 caracteres"
+                                      }
+                                    }
+                                    """
+                        )
+                )
+        ),
+        @ApiResponse(
+                responseCode = "409",
+                description = "El email ya está registrado",
+                content = @Content(
+                        mediaType = "application/json",
+                        examples = @ExampleObject(
+                                name = "Email duplicado",
+                                value = """
+                                    {
+                                      "status": 409,
+                                      "message": "Email already exists: john.doe@example.com"
+                                    }
+                                    """
+                        )
+                )
+        )
+})
+@SecurityRequirement(name = "") //Enpoint público, no requiere de autenticación
     public ResponseEntity<UserResponse> register(
         @Valid @RequestBody RegisterUserRequest request
         ) {
@@ -138,7 +202,98 @@ public class AuthController {
             .body(response);
 }
 
+    /**
+     * Autentica un usuario y genera tokens JWT.
+     *
+     * Endpoint público que valida credenciales y retorna access + refresh tokens.
+     *
+     * @param request Credenciales del usuario (email y password)
+     * @param httpRequest Request HTTP para extraer IP del cliente
+     * @return AuthenticationResponse con tokens JWT y datos básicos del usuario
+     */
 @PostMapping("/login")
+@Operation(
+        summary = "Iniciar sesión",
+        description = """
+                Autentica un usuario con email y contraseña, retornando tokens JWT.
+                
+                **Flujo:**
+                1. Valida que el usuario exista y esté habilitado
+                2. Verifica la contraseña con BCrypt
+                3. Genera un Access Token (válido 1 hora) y un Refresh Token (válido 7 días)
+                4. Registra el login en los logs de auditoría con IP del cliente
+                
+                **Tokens generados:**
+                - **Access Token**: Usar en header `Authorization: Bearer {token}` para endpoints protegidos
+                - **Refresh Token**: Usar en `/api/auth/refresh` para obtener un nuevo access token
+                
+                **Seguridad:**
+                - Las contraseñas nunca se transmiten sin hashear
+                - Los tokens están firmados con HS256
+                - La IP del cliente se registra para auditoría
+                """
+)
+@ApiResponses(value = {
+        @ApiResponse(
+                responseCode = "200",
+                description = "Login exitoso, tokens generados",
+                content = @Content(
+                        mediaType = "application/json",
+                        schema = @Schema(implementation = AuthenticationResponse.class),
+                        examples = @ExampleObject(
+                                name = "Login exitoso",
+                                value = """
+                                    {
+                                      "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                                      "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                                      "expiresIn": 3600,
+                                      "user": {
+                                        "email": "john.doe@example.com",
+                                        "firstName": "John",
+                                        "lastName": "Doe"
+                                      }
+                                    }
+                                    """
+                        )
+                )
+        ),
+        @ApiResponse(
+                responseCode = "400",
+                description = "Datos de entrada inválidos",
+                content = @Content(
+                        mediaType = "application/json",
+                        examples = @ExampleObject(
+                                name = "Validación fallida",
+                                value = """
+                                    {
+                                      "status": 400,
+                                      "message": "Validation failed",
+                                      "errors": {
+                                        "email": "Email no puede estar vacío"
+                                      }
+                                    }
+                                    """
+                        )
+                )
+        ),
+        @ApiResponse(
+                responseCode = "401",
+                description = "Credenciales inválidas",
+                content = @Content(
+                        mediaType = "application/json",
+                        examples = @ExampleObject(
+                                name = "Credenciales incorrectas",
+                                value = """
+                                    {
+                                      "status": 401,
+                                      "message": "Invalid email or password"
+                                    }
+                                    """
+                        )
+                )
+        )
+})
+@SecurityRequirement(name = "")  // Endpoint público
     public ResponseEntity<AuthenticationResponse> login(
         @Valid @RequestBody LoginRequest request,
         HttpServletRequest httpRequest
@@ -174,28 +329,71 @@ public class AuthController {
     return ResponseEntity.ok(response);
 }
 
-/**
- * Refresca el access token usando un refresh token válido.
- *
- * Endpoint: POST /api/auth/refresh
- *
- * Request body:
- * {
- *   "refreshToken": "eyJhbGciOiJIUzI1NiIs..."
- * }
- *
- * Response exitosa (200 OK):
- * {
- *   "accessToken": "eyJhbGciOiJIUzI1NiIs...",
- *   "tokenType": "Bearer",
- *   "expiresIn": 3600
- * }
- *
- * Errores posibles:
- * - 400 Bad Request: Validación falló
- * - 401 Unauthorized: Refresh token inválido/expirado
- */
+    /**
+     * Renueva el access token usando un refresh token válido.
+     *
+     * Cuando el access token expira (1 hora), usa este endpoint
+     * para obtener uno nuevo sin hacer login de nuevo.
+     *
+     * @param request DTO con el refresh token
+     * @return RefreshTokenResponse con nuevo access token
+     */
 @PostMapping("/refresh")
+@Operation(
+        summary = "Renovar access token",
+        description = """
+                Genera un nuevo access token usando un refresh token válido.
+                
+                **Cuándo usar:**
+                - Cuando el access token haya expirado (después de 1 hora)
+                - Para evitar que el usuario tenga que hacer login de nuevo
+                
+                **Comportamiento:**
+                - Valida que el refresh token sea válido y no esté en blacklist
+                - Genera un nuevo access token con la misma información del usuario
+                - El refresh token sigue siendo válido (no se renueva)
+                - El nuevo access token expira en 1 hora
+                
+                **Nota:** Los refresh tokens expiran en 7 días. Después de eso,
+                el usuario debe hacer login de nuevo.
+                """
+)
+@ApiResponses(value = {
+        @ApiResponse(
+                responseCode = "200",
+                description = "Token renovado exitosamente",
+                content = @Content(
+                        mediaType = "application/json",
+                        schema = @Schema(implementation = RefreshTokenResponse.class),
+                        examples = @ExampleObject(
+                                name = "Token renovado",
+                                value = """
+                                    {
+                                      "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                                      "expiresIn": 3600
+                                    }
+                                    """
+                        )
+                )
+        ),
+        @ApiResponse(
+                responseCode = "401",
+                description = "Refresh token inválido o expirado",
+                content = @Content(
+                        mediaType = "application/json",
+                        examples = @ExampleObject(
+                                name = "Token inválido",
+                                value = """
+                                    {
+                                      "status": 401,
+                                      "message": "Invalid or expired refresh token"
+                                    }
+                                    """
+                        )
+                )
+        )
+})
+@SecurityRequirement(name = "")  // Endpoint público (usa refresh token en body)
 public ResponseEntity<RefreshTokenResponse> refresh (
         @Valid @RequestBody RefreshTokenRequest request
         ) {
@@ -221,25 +419,56 @@ public ResponseEntity<RefreshTokenResponse> refresh (
     /**
      * Cierra la sesión del usuario revocando sus tokens.
      *
-     * Endpoint: POST /api/auth/logout
+     * Invalida tanto el access token como el refresh token
+     * añadiéndolos a la blacklist en Redis.
      *
-     * Request body:
-     * {
-     *   "accessToken": "eyJhbGciOiJIUzI1NiIs...",
-     *   "refreshToken": "eyJhbGciOiJIUzI1NiIs..."
-     * }
-     *
-     * Response exitosa (204 No Content):
-     * (sin body)
-     *
-     * Después del logout:
-     * - Access token agregado a blacklist (no se puede usar más)
-     * - Refresh token agregado a blacklist (no se puede usar más)
-     * - Usuario debe hacer login de nuevo
-     *
-     * Este endpoint REQUIERE autenticación (token válido en header).
+     * @param request DTO con access y refresh tokens a revocar
+     * @return 204 No Content si es exitoso
      */
     @PostMapping("/logout")
+    @Operation(
+            summary = "Cerrar sesión",
+            description = """
+                    Invalida los tokens del usuario, cerrando su sesión.
+                    
+                    **Comportamiento:**
+                    - Añade access token a la blacklist en Redis (TTL: 1 hora)
+                    - Añade refresh token a la blacklist en Redis (TTL: 7 días)
+                    - Los tokens quedan inmediatamente inválidos
+                    - Cualquier petición con esos tokens será rechazada
+                    
+                    **Después del logout:**
+                    - El usuario debe hacer login de nuevo para obtener nuevos tokens
+                    - Los tokens antiguos NO pueden ser usados nunca más
+                    
+                    **Seguridad:**
+                    - Requiere autenticación (access token válido en header)
+                    - Solo el usuario autenticado puede hacer logout de su sesión
+                    """
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "204",
+                    description = "Logout exitoso, tokens revocados"
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "No autenticado o token inválido",
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "No autenticado",
+                                    value = """
+                                        {
+                                          "status": 401,
+                                          "message": "Full authentication is required"
+                                        }
+                                        """
+                            )
+                    )
+            )
+    })
+    @SecurityRequirement(name = "Bearer Authentication")  // Requiere autenticación JWT
     public ResponseEntity<Void> logout(
             @Valid @RequestBody LogoutRequest request
             ) {
