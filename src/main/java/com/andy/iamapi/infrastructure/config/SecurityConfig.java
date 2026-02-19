@@ -1,6 +1,7 @@
 package com.andy.iamapi.infrastructure.config;
 
 import com.andy.iamapi.infrastructure.adapter.security.JwtAuthenticationFilter;
+import com.andy.iamapi.infrastructure.adapter.security.RateLimitFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -24,9 +25,14 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableMethodSecurity
 public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final RateLimitFilter rateLimitFilter;
 
-    public SecurityConfig (JwtAuthenticationFilter jwtAuthenticationFilter) {
+    public SecurityConfig (
+            JwtAuthenticationFilter jwtAuthenticationFilter,
+            RateLimitFilter rateLimitFilter
+    ) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.rateLimitFilter = rateLimitFilter;
     }
 
     /**
@@ -74,12 +80,8 @@ public class SecurityConfig {
                         // Todos los demás endpoints requieren AUTENTICACIÓN
                         .anyRequest().authenticated())
 
-                // Agregar filtro JWT ANTES del filtro de autenticación de Spring
-                // Orden importante: JWT debe ejecutarse primero para establecer autenticación
-                .addFilterBefore(
-                        jwtAuthenticationFilter,
-                        UsernamePasswordAuthenticationFilter.class
-                );
+                .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

@@ -42,6 +42,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+import static com.andy.iamapi.domain.util.IpAddressUtil.getClientIp;
+
 
 /**
  * Controller REST para endpoints de autenticación.
@@ -113,6 +115,9 @@ public class AuthController {
                 - Password hasheada con BCrypt antes de guardar
                 - Usuario habilitado automáticamente (enabled=true)
                 
+                 **⚠️ Rate Limiting:**
+                 Máximo **3 registros por hora** por IP.
+                
                 **Ejemplo de uso:**
                 1. Llamar a este endpoint con los datos del usuario
                 2. Si es exitoso, hacer login con el mismo email/password
@@ -176,6 +181,25 @@ public class AuthController {
                                     """
                         )
                 )
+        ),
+        @ApiResponse(
+                responseCode = "429",
+                description = "Demasiadas peticiones - Rate limit excedido",
+                content = @Content(
+                        mediaType = "application/json",
+                        examples = @ExampleObject(
+                                name = "Rate limit excedido",
+                                value = """
+                {
+                  "timestamp": "2026-02-17T14:10:00",
+                  "status": 429,
+                  "error": "Too Many Requests",
+                  "message": "Too many requests. Please try again later.",
+                  "path": "/api/auth/register"
+                }
+                """
+                        )
+                )
         )
 })
 @SecurityRequirement(name = "") //Enpoint público, no requiere de autenticación
@@ -231,6 +255,10 @@ public class AuthController {
                 - Las contraseñas nunca se transmiten sin hashear
                 - Los tokens están firmados con HS256
                 - La IP del cliente se registra para auditoría
+                
+                 **⚠️ Rate Limiting:**
+                 Máximo **5 intentos por minuto** por IP.
+                 Si se supera, retorna `429 Too Many Requests`.
                 """
 )
 @ApiResponses(value = {
@@ -289,6 +317,25 @@ public class AuthController {
                                       "message": "Invalid email or password"
                                     }
                                     """
+                        )
+                )
+        ),
+        @ApiResponse(
+                responseCode = "429",
+                description = "Demasiadas peticiones - Rate limit excedido",
+                content = @Content(
+                        mediaType = "application/json",
+                        examples = @ExampleObject(
+                                name = "Rate limit excedido",
+                                value = """
+                {
+                  "timestamp": "2026-02-17T14:10:00",
+                  "status": 429,
+                  "error": "Too Many Requests",
+                  "message": "Too many requests. Please try again later.",
+                  "path": "/api/auth/login"
+                }
+                """
                         )
                 )
         )
@@ -354,6 +401,9 @@ public class AuthController {
                 - El refresh token sigue siendo válido (no se renueva)
                 - El nuevo access token expira en 1 hora
                 
+                **⚠️ Rate Limiting:**
+                Máximo **10 intentos por minuto** por IP.
+                
                 **Nota:** Los refresh tokens expiran en 7 días. Después de eso,
                 el usuario debe hacer login de nuevo.
                 """
@@ -389,6 +439,25 @@ public class AuthController {
                                       "message": "Invalid or expired refresh token"
                                     }
                                     """
+                        )
+                )
+        ),
+        @ApiResponse(
+                responseCode = "429",
+                description = "Demasiadas peticiones - Rate limit excedido",
+                content = @Content(
+                        mediaType = "application/json",
+                        examples = @ExampleObject(
+                                name = "Rate limit excedido",
+                                value = """
+                {
+                  "timestamp": "2026-02-17T14:10:00",
+                  "status": 429,
+                  "error": "Too Many Requests",
+                  "message": "Too many requests. Please try again later.",
+                  "path": "/api/auth/refresh"
+                }
+                """
                         )
                 )
         )
@@ -491,34 +560,5 @@ public ResponseEntity<RefreshTokenResponse> refresh (
 
         return ResponseEntity.noContent().build();
     }
-
-
-
-    /**
-     * Extrae la IP del cliente del request.
-     *
-     * Considera proxies y load balancers (X-Forwarded-For header).
-     *
-     * @param request HttpServletRequest
-     * @return IP del cliente
-     */
-    private String getClientIp(HttpServletRequest request) {
-        // Si está detrás de un proxy/load balancer
-        String xForwardedFor = request.getHeader("X-Forwarded-For");
-
-        if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
-            // X-Forwarded-For puede contener: "client_ip, proxy1_ip, proxy2_ip"
-            // Tomamos la primera (IP del cliente real)
-            return xForwardedFor.split(",")[0].trim();
-        }
-
-        // Si no hay proxy, usar IP directa
-        return request.getRemoteAddr();
-    }
-
-
-
-
-
 
 }
