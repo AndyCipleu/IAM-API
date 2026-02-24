@@ -123,7 +123,7 @@ public class RateLimitService {
                 .build(key,configSupplier)
                 .tryConsumeAndReturnRemaining(1); // Intenta consumir 1 token
 
-        if (probe.isConsumed()) {
+        if (!probe.isConsumed()) {
             // No hay tokens disponibles
             long waitSeconds = probe.getNanosToWaitForRefill() / 1_000_000_000;
             log.warn("Rate limit exceeded for IP: {} on endpoint: {}. Wait {} seconds",

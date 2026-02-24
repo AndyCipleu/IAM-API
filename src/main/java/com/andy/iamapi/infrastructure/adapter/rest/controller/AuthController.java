@@ -203,7 +203,7 @@ public class AuthController {
         )
 })
 @SecurityRequirement(name = "") //Enpoint público, no requiere de autenticación
-    public ResponseEntity<UserResponse> register(
+    public ResponseEntity<AuthenticationResponse> register(
         @Valid @RequestBody RegisterUserRequest request
         ) {
 
@@ -213,12 +213,26 @@ public class AuthController {
     RegisterUserCommand command = request.toCommand();
 
     //Paso 2: Ejecutar caso de uso (lógica de negocio)
-    User user = registerUserUseCase.execute(command);
+    AuthenticationResult result = registerUserUseCase.execute(command);
 
     //Paso 3: Convertir Domain Model a DTO (response)
-    UserResponse response = UserResponse.fromDomain(user);
+    UserResponse userResponse = new UserResponse(
+            null,
+            result.email(),
+            result.firstName(),
+            result.lastName(),
+            null,
+            null
+    );
 
-    log.info("User registered succesfully with ID: {}", user.getId());
+    AuthenticationResponse response = new AuthenticationResponse(
+            result.accessToken(),
+            result.refreshToken(),
+            3600L,
+            userResponse
+    );
+
+    log.info("User registered succesfully with email: {}", result.email());
 
     //Paso 4: Retornar ResponseEntity con status 201 Created
     return ResponseEntity

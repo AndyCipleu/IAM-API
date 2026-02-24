@@ -1,0 +1,132 @@
+<div class="dashboard-container">
+  <mat-toolbar color="primary" class="toolbar">
+    <span class="app-name">IAM Dashboard</span>
+    <span class="spacer"></span>
+    <button mat-button (click)="logout()">
+      <mat-icon>logout</mat-icon>
+      Cerrar Sesión
+    </button>
+  </mat-toolbar>
+
+  <div class="dashboard-content">
+    <mat-card class="welcome-card">
+      <mat-card-header>
+        <mat-icon mat-card-avatar>account_circle</mat-icon>
+        <mat-card-title>
+          <span *ngIf="currentUser()"
+            >Bienvenido, {{ currentUser()!.user.firstName }}!</span
+          >
+        </mat-card-title>
+        <mat-card-subtitle>
+          <span *ngIf="currentUser()">{{ currentUser()!.user.email }}</span>
+        </mat-card-subtitle>
+      </mat-card-header>
+
+      <mat-card-content>
+        <div class="user-info" *ngIf="currentUser()">
+          <div class="info-row">
+            <mat-icon>person</mat-icon>
+            <span>
+              <strong>Nombre completo:</strong>
+              {{ currentUser()!.user.firstName }}
+              {{ currentUser()!.user.lastName }}
+            </span>
+          </div>
+
+          <div class="info-row">
+            <mat-icon>email</mat-icon>
+            <span>
+              <strong>Email:</strong>
+              {{ currentUser()!.user.email }}
+            </span>
+          </div>
+
+          <div class="info-row" *ngIf="currentUser()!.user.role">
+            <mat-icon>badge</mat-icon>
+            <span>
+              <strong>Rol:</strong>
+              {{ currentUser()!.user.role }}
+            </span>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <div class="actions-grid">
+      <mat-card class="action-card">
+        <mat-card-header>
+          <mat-icon mat-card-avatar color="primary">people</mat-icon>
+          <mat-card-title>Usuarios</mat-card-title>
+          <mat-card-subtitle>Gestión de usuarios del sistema</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <p>
+            Ver, crear, editar y eliminar usuarios. Gestionar roles y permisos.
+          </p>
+        </mat-card-content>
+        <mat-card-actions>
+          <button mat-raised-button color="primary" (click)="goToUsers()">
+            <mat-icon>arrow_forward</mat-icon>
+            Ir a Usuarios
+          </button>
+        </mat-card-actions>
+      </mat-card>
+
+      <mat-card class="action-card">
+        <mat-card-header>
+          <mat-icon mat-card-avatar color="accent">settings</mat-icon>
+          <mat-card-title>Mi Perfil</mat-card-title>
+          <mat-card-subtitle>Configuración de cuenta</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <p>
+            Edita tu información personal, cambia tu contraseña y gestiona tu
+            cuenta.
+          </p>
+        </mat-card-content>
+        <mat-card-actions>
+          <button mat-raised-button disabled>
+            <mat-icon>lock</mat-icon>
+            Próximamente
+          </button>
+        </mat-card-actions>
+      </mat-card>
+
+      <mat-card class="action-card">
+        <mat-card-header>
+          <mat-icon mat-card-avatar>admin_panel_settings</mat-icon>
+          <mat-card-title>Roles y Permisos</mat-card-title>
+          <mat-card-subtitle>Control de acceso</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <p>Administra roles del sistema y sus permisos asociados.</p>
+        </mat-card-content>
+        <mat-card-actions>
+          <button mat-raised-button disabled>
+            <mat-icon>lock</mat-icon>
+            Próximamente
+          </button>
+        </mat-card-actions>
+      </mat-card>
+
+      <mat-card class="action-card">
+        <mat-card-header>
+          <mat-icon mat-card-avatar>history</mat-icon>
+          <mat-card-title>Auditoría</mat-card-title>
+          <mat-card-subtitle>Logs del sistema</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <p>
+            Revisa el historial de acciones y eventos de seguridad del sistema.
+          </p>
+        </mat-card-content>
+        <mat-card-actions>
+          <button mat-raised-button disabled>
+            <mat-icon>lock</mat-icon>
+            Próximamente
+          </button>
+        </mat-card-actions>
+      </mat-card>
+    </div>
+  </div>
+</div>

@@ -2,7 +2,7 @@ package com.andy.iamapi.domain.port.input;
 
 import com.andy.iamapi.domain.exception.InvalidPasswordException;
 import com.andy.iamapi.domain.exception.UserAlreadyExistsException;
-import com.andy.iamapi.domain.model.User;
+import com.andy.iamapi.domain.port.input.AuthenticateUserUseCase.AuthenticationResult;
 
 /**
  * Caso de uso: Registrar un nuevo usuario
@@ -20,9 +20,9 @@ public interface RegisterUserUseCase {
      * @throws UserAlreadyExistsException si el email ya está registrado
      * @throws InvalidPasswordException si la contraseña no cumple requisitos
      */
-    User execute(RegisterUserCommand command);
+    AuthenticationResult execute(RegisterUserCommand command);
 
-    record RegisterUserCommand(
+    public record RegisterUserCommand(
             String email,
             String password,
             String firstName,

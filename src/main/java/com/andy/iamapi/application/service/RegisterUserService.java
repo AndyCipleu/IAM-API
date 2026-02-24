@@ -5,12 +5,14 @@ import com.andy.iamapi.domain.exception.RoleNotFoundException;
 import com.andy.iamapi.domain.exception.UserAlreadyExistsException;
 import com.andy.iamapi.domain.model.Role;
 import com.andy.iamapi.domain.model.User;
+import com.andy.iamapi.domain.port.input.AuthenticateUserUseCase.AuthenticationResult;
 import com.andy.iamapi.domain.port.input.RegisterUserUseCase;
 import com.andy.iamapi.domain.port.output.AuditLogger;
 import com.andy.iamapi.domain.port.output.PasswordEncoder;
 import com.andy.iamapi.domain.port.output.RoleRepository;
 import com.andy.iamapi.domain.port.output.UserRepository;
 import com.andy.iamapi.domain.util.PasswordValidator;
+import com.andy.iamapi.infrastructure.adapter.security.JwtTokenService;
 import org.springframework.stereotype.Service;
 
 /**
@@ -39,6 +41,7 @@ public class RegisterUserService implements RegisterUserUseCase {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtTokenService jwtTokenService;
     private final AuditLogger auditLogger;
 
     /**
@@ -61,11 +64,13 @@ public class RegisterUserService implements RegisterUserUseCase {
             UserRepository userRepository,
             RoleRepository roleRepository,
             PasswordEncoder passwordEncoder,
+            JwtTokenService jwtTokenService,
             AuditLogger auditLogger
     ) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
+        this.jwtTokenService = jwtTokenService;
         this.auditLogger = auditLogger;
     }
 
@@ -90,7 +95,7 @@ public class RegisterUserService implements RegisterUserUseCase {
      * @throws RoleNotFoundException si el rol por defecto no existe en la BD
      */
     @Override
-    public User execute(RegisterUserCommand command) {
+    public AuthenticationResult execute(RegisterUserCommand command) {
         //Verificar existencia email
         if (userRepository.existsByEmail(command.email())) {
             throw new UserAlreadyExistsException(command.email());
@@ -121,6 +126,10 @@ public class RegisterUserService implements RegisterUserUseCase {
         //Persistir el usuario
         User savedUser = userRepository.save(user);
 
+        // Generar nuevos tokens
+        String accessToken = jwtTokenService.generateAccessToken(user);
+        String refreshToken = jwtTokenService.generateRefreshToken(user);
+
         //Auditoría
         auditLogger.logAction(
                 savedUser.getId(),
@@ -129,6 +138,12 @@ public class RegisterUserService implements RegisterUserUseCase {
                 "SYSTEM" //Ip o source del registro
         );
 
-        return savedUser;
+        return new AuthenticationResult(
+                accessToken,
+                refreshToken,
+                savedUser.getEmail(),
+                savedUser.getFirstName(),
+                savedUser.getLastName()
+        );
     }
 }

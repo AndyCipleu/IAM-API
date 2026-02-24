@@ -1,0 +1,87 @@
+<div class="login-container">
+  <mat-card class="login-card">
+    <mat-card-header>
+      <mat-card-title>Iniciar Sesión</mat-card-title>
+      <mat-card-subtitle
+        >IAM - Identity and Access Management</mat-card-subtitle
+      >
+    </mat-card-header>
+
+    <mat-card-content>
+      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Email</mat-label>
+          <input
+            matInput
+            type="email"
+            formControlName="email"
+            placeholder="tu@email.com"
+            autocomplete="email"
+          />
+          <mat-icon matPrefix>email</mat-icon>
+          <mat-error *ngIf="hasError('email', 'required')">
+            Email es requerido
+          </mat-error>
+          <mat-error *ngIf="hasError('email', 'email')">
+            Email inválido
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Contraseña</mat-label>
+          <input
+            matInput
+            [type]="hidePassword() ? 'password' : 'text'"
+            formControlName="password"
+            placeholder="Mínimo 8 caracteres"
+            autocomplete="current-password"
+          />
+          <mat-icon matPrefix>lock</mat-icon>
+
+          <button
+            mat-icon-button
+            matSuffix
+            type="button"
+            (click)="togglePasswordVisibility()"
+          >
+            <mat-icon>{{
+              hidePassword() ? "visibility_off" : "visibility"
+            }}</mat-icon>
+          </button>
+
+          <mat-error *ngIf="hasError('password', 'required')">
+            Contraseña es requerida
+          </mat-error>
+          <mat-error *ngIf="hasError('password', 'minlength')">
+            Mínimo 8 caracteres
+          </mat-error>
+        </mat-form-field>
+
+        <div class="error-message" *ngIf="errorMessage()">
+          <mat-icon>error</mat-icon>
+          <span>{{ errorMessage() }}</span>
+        </div>
+
+        <button
+          mat-raised-button
+          color="primary"
+          type="submit"
+          class="full-width login-button"
+          [disabled]="isLoading()"
+        >
+          <mat-spinner diameter="20" *ngIf="isLoading()"></mat-spinner>
+          <span>{{
+            isLoading() ? "Iniciando sesión..." : "Iniciar Sesión"
+          }}</span>
+        </button>
+
+        <div class="register-link">
+          <span>¿No tienes cuenta?</span>
+          <a routerLink="/register" mat-button color="primary">
+            Regístrate aquí
+          </a>
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
+</div>
